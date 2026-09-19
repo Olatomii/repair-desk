@@ -8,7 +8,7 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/repairdesk?schema=public
@@ -36,5 +36,14 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Test
+      - name: Unit tests
         run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke tests
+        run: npm run test:e2e
