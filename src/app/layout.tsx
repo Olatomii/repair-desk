@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Repair Desk",
   description:
-    "A local repair-service platform for booking trusted artisans, agreeing quotes, and keeping a clear repair record.",
+    "A multi-city repair-service platform for booking trusted artisans, agreeing quotes, and keeping a clear repair record.",
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
           <div className="shell flex min-h-18 items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3 font-black tracking-tight">
               <span className="flex size-9 items-center justify-center rounded-full bg-[#1f5b45] text-sm text-white">
-                a.
+                r.
               </span>
               <span>Repair Desk</span>
             </Link>
