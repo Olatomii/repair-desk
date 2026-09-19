@@ -6,16 +6,16 @@ Repair Desk is a service marketplace/workflow product, not merely a directory.
 
 The core lifecycle is:
 
-`REQUESTED → ASSIGNED → QUOTED → QUOTE_APPROVED → IN_PROGRESS → COMPLETED`
+`REQUESTED → ASSIGNED → QUOTED → QUOTE_APPROVED → IN_PROGRESS → AWAITING_HANDOVER → COMPLETED`
 
-Exceptional terminal paths include `CANCELLED` and `DISPUTED`.
+Quote rejection returns the booking to `ASSIGNED` so the artisan can submit a revised quote. Exceptional terminal paths include `CANCELLED` and `DISPUTED`.
 
 ## Roles
 
 ### Client
 - Creates a repair request.
 - Reviews artisan assignment.
-- Reviews and approves a quote.
+- Reviews and approves or rejects a quote.
 - Tracks work status.
 - Confirms handover.
 
@@ -23,12 +23,12 @@ Exceptional terminal paths include `CANCELLED` and `DISPUTED`.
 - Receives assigned jobs.
 - Submits quotes.
 - Marks accepted work in progress.
-- Records completion.
+- Marks work finished and waits for client handover confirmation.
 
 ### Operator
 - Reviews new requests.
 - Verifies/activates artisans.
-- Assigns work.
+- Assigns work only to active artisans covering the required city and service.
 - Oversees disputes and platform operations.
 
 ## Technical shape
@@ -49,20 +49,35 @@ Exceptional terminal paths include `CANCELLED` and `DISPUTED`.
 2. Artisan assignment is optional until an operator assigns the booking.
 3. Home-service bookings must contain a service address.
 4. Price is represented as a decimal amount with an explicit currency.
-5. Status transitions should be implemented through service functions rather than arbitrary UI updates.
-6. Every important transition should create a `BookingEvent` record for auditability.
+5. The client never sends an arbitrary status; workflow APIs accept named actions instead.
+6. State transitions are centralized in `src/lib/booking-workflow.ts`.
+7. Assignment verifies artisan status, city coverage, and service coverage.
+8. Only the assigned artisan can quote, start, or finish a repair.
+9. Only the booking owner can approve/reject a quote or confirm handover.
+10. Conditional transactional updates reduce stale-state race conditions.
+11. Important transitions create `BookingEvent` records for auditability.
 
 ## Geographic expansion
 
 Cities are first-class database records. Artisans can be linked to one or more cities through `ArtisanCity`, and every booking belongs to a city. This allows expansion beyond Abeokuta without renaming or restructuring the product.
 
+## Workflow integrity
+
+Lifecycle mutations are centralized in `src/lib/booking-workflow.ts`.
+
+The API accepts named actions, validates the caller role, checks the current state, and performs conditional transactional updates. Important transitions append a `BookingEvent` audit record.
+
+Key constraints:
+- Only an operator can assign an artisan.
+- Assignment requires an active artisan covering both the booking city and service.
+- Only the assigned active artisan can quote, start, or finish work.
+- Only the booking owner can approve/reject a quote or confirm handover.
+- Artisan completion moves the booking to `AWAITING_HANDOVER`; the client alone finalizes `COMPLETED`.
+- Quote rejection returns the booking to `ASSIGNED` for a revised quote while retaining the rejection event.
+
 ## Next implementation milestones
 
-1. Operator assignment workflow with transaction-safe eligibility checks.
-2. Artisan quote submission and client quote approval.
-3. Server-enforced booking state-transition service.
-4. Completion/handover confirmation.
-5. File/image evidence for repair diagnosis and completion.
-6. Notifications.
-7. Playwright end-to-end tests.
-8. Deployment and production observability.
+1. File/image evidence for repair diagnosis and completion.
+2. Notifications.
+3. Playwright end-to-end tests.
+4. Deployment and production observability.
