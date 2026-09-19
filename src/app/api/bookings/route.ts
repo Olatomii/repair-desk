@@ -6,10 +6,7 @@ import { createBookingReference } from "@/lib/booking-reference";
 import { createBookingSchema } from "@/lib/validators/booking";
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
@@ -21,7 +18,6 @@ export async function POST(request: Request) {
 
   const body: unknown = await request.json();
   const parsed = createBookingSchema.safeParse(body);
-
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid booking details", details: parsed.error.flatten() },
@@ -29,33 +25,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const city = await prisma.city.findFirst({
-    where: {
-      id: parsed.data.cityId,
-      isActive: true,
-    },
-  });
+  const [city, service] = await Promise.all([
+    prisma.city.findFirst({ where: { id: parsed.data.cityId, isActive: true } }),
+    prisma.serviceCategory.findFirst({ where: { id: parsed.data.serviceCategoryId, isActive: true } }),
+  ]);
 
-  if (!city) {
-    return NextResponse.json({ error: "City is not available" }, { status: 404 });
-  }
-
-  const service = await prisma.serviceCategory.findFirst({
-    where: {
-      id: parsed.data.serviceCategoryId,
-      isActive: true,
-    },
-  });
-
-  if (!service) {
-    return NextResponse.json({ error: "Service is not available" }, { status: 404 });
-  }
-
+  if (!city) return NextResponse.json({ error: "City is not available" }, { status: 404 });
+  if (!service) return NextResponse.json({ error: "Service is not available" }, { status: 404 });
   if (service.mode === "HOME" && !parsed.data.address) {
-    return NextResponse.json(
-      { error: "A service address is required for home visits" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "A service address is required for home visits" }, { status: 400 });
   }
 
   const booking = await prisma.$transaction(async (tx) => {
@@ -67,9 +45,7 @@ export async function POST(request: Request) {
         cityId: city.id,
         problemDescription: parsed.data.problemDescription,
         address: parsed.data.address || null,
-        preferredDate: parsed.data.preferredDate
-          ? new Date(parsed.data.preferredDate)
-          : null,
+        preferredDate: parsed.data.preferredDate ? new Date(parsed.data.preferredDate) : null,
       },
     });
 
@@ -82,15 +58,23 @@ export async function POST(request: Request) {
       },
     });
 
+    const operators = await tx.user.findMany({ where: { role: "OPERATOR" }, select: { id: true } });
+    if (operators.length > 0) {
+      await tx.notification.createMany({
+        data: operators.map((operator) => ({
+          userId: operator.id,
+          title: "New repair request",
+          body: `${created.reference}: ${service.name} request in ${city.name}.`,
+          href: "/operator",
+        })),
+      });
+    }
+
     return created;
   });
 
   return NextResponse.json(
-    {
-      id: booking.id,
-      reference: booking.reference,
-      status: booking.status,
-    },
+    { id: booking.id, reference: booking.reference, status: booking.status },
     { status: 201 },
   );
 }

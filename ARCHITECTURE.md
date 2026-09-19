@@ -2,82 +2,88 @@
 
 ## Product boundary
 
-Repair Desk is a service marketplace/workflow product, not merely a directory.
+Repair Desk is a multi-city service workflow platform rather than a simple artisan directory. Its central domain object is a booking with an explicit lifecycle, ownership, assignment, quote, evidence, and handover record.
 
-The core lifecycle is:
+## Application boundaries
 
-`REQUESTED → ASSIGNED → QUOTED → QUOTE_APPROVED → IN_PROGRESS → AWAITING_HANDOVER → COMPLETED`
+```mermaid
+flowchart TD
+    UI[Next.js server/client UI] --> AUTH[Better Auth]
+    UI --> ROUTES[Route handlers]
+    ROUTES --> POLICY[Zod + role/ownership policy]
+    ROUTES --> WF[Booking workflow service]
+    ROUTES --> EVIDENCE[Evidence policy]
+    WF --> PRISMA[Prisma]
+    EVIDENCE --> PRISMA
+    PRISMA --> PG[(PostgreSQL)]
+    PG --> AUDIT[Booking events]
+    PG --> NOTIFY[Notifications]
+```
 
-Quote rejection returns the booking to `ASSIGNED` so the artisan can submit a revised quote. Exceptional terminal paths include `CANCELLED` and `DISPUTED`.
+## Workflow invariant
+
+The UI never writes booking status directly. Status changes pass through server-side actions that validate:
+
+1. authenticated actor;
+2. actor role;
+3. booking ownership or artisan assignment;
+4. current lifecycle state;
+5. target transition;
+6. concurrency-safe conditional update.
+
+The resulting state change and audit event are persisted transactionally in the workflow layer.
 
 ## Roles
 
 ### Client
-- Creates a repair request.
-- Reviews artisan assignment.
-- Reviews and approves or rejects a quote.
-- Tracks work status.
-- Confirms handover.
+Creates requests, reviews quotes, uploads permitted evidence, tracks work, and confirms handover.
 
 ### Artisan
-- Receives assigned jobs.
-- Submits quotes.
-- Marks accepted work in progress.
-- Marks work finished and waits for client handover confirmation.
+Receives assigned work, submits quotes, records diagnosis/completion evidence, starts repairs, and marks work finished.
 
 ### Operator
-- Reviews new requests.
-- Verifies/activates artisans.
-- Assigns work only to active artisans covering the required city and service.
-- Oversees disputes and platform operations.
+Reviews the queue, receives new-request notifications, and assigns only active artisans whose city and service coverage match the booking.
 
-## Technical shape
+## Data model decisions
 
-- **Next.js 16 App Router** for web UI and server endpoints.
-- **TypeScript** in strict mode.
-- **PostgreSQL** for durable relational state.
-- **Prisma ORM 7** for schema, migrations, and typed data access.
-- **Better Auth** for credential-based authentication.
-- **Zod** for API input validation.
-- **Vitest** for unit tests.
-- **GitHub Actions** for quality gates.
-- **Docker Compose** for local PostgreSQL.
+### Multi-city
+`City` is a first-class record. `ArtisanCity` is many-to-many coverage and `Booking.cityId` fixes the service location for each job.
 
-## Data integrity rules
+### Service coverage
+`ArtisanService` separates artisan capability from individual bookings. Assignment requires both city and service eligibility.
 
-1. Every booking belongs to exactly one client, service category, and city.
-2. Artisan assignment is optional until an operator assigns the booking.
-3. Home-service bookings must contain a service address.
-4. Price is represented as a decimal amount with an explicit currency.
-5. The client never sends an arbitrary status; workflow APIs accept named actions instead.
-6. State transitions are centralized in `src/lib/booking-workflow.ts`.
-7. Assignment verifies artisan status, city coverage, and service coverage.
-8. Only the assigned artisan can quote, start, or finish a repair.
-9. Only the booking owner can approve/reject a quote or confirm handover.
-10. Conditional transactional updates reduce stale-state race conditions.
-11. Important transitions create `BookingEvent` records for auditability.
+### Audit trail
+`BookingEvent` records important user and workflow actions independently from the current booking state.
 
-## Geographic expansion
+### Notifications
+`Notification` is intentionally an in-app persistent notification model. Email/push providers can be added later without coupling the lifecycle to an external vendor.
 
-Cities are first-class database records. Artisans can be linked to one or more cities through `ArtisanCity`, and every booking belongs to a city. This allows expansion beyond Abeokuta without renaming or restructuring the product.
+### Evidence
+`BookingEvidence` stores small portfolio-demo files directly in PostgreSQL. Access is always checked through the parent booking. A larger production deployment should place binary content in object storage and retain metadata in PostgreSQL.
 
-## Workflow integrity
+## Operational profile
 
-Lifecycle mutations are centralized in `src/lib/booking-workflow.ts`.
+- Node.js 22+
+- Next.js 16 App Router
+- PostgreSQL
+- Prisma 7
+- Free Render-compatible deployment
+- Stateless web process; persistent state lives in PostgreSQL
+- `/api/health` health endpoint
 
-The API accepts named actions, validates the caller role, checks the current state, and performs conditional transactional updates. Important transitions append a `BookingEvent` audit record.
+## Testing strategy
 
-Key constraints:
-- Only an operator can assign an artisan.
-- Assignment requires an active artisan covering both the booking city and service.
-- Only the assigned active artisan can quote, start, or finish work.
-- Only the booking owner can approve/reject a quote or confirm handover.
-- Artisan completion moves the booking to `AWAITING_HANDOVER`; the client alone finalizes `COMPLETED`.
-- Quote rejection returns the booking to `ASSIGNED` for a revised quote while retaining the rejection event.
+- Vitest: pure workflow/state/validation policy
+- TypeScript: compile-time contract checks
+- ESLint: static quality checks
+- Next.js production build: framework integration
+- Playwright: public browser smoke tests
+- GitHub Actions: all quality gates on PRs and main
 
-## Next implementation milestones
+## Deliberate limitations
 
-1. File/image evidence for repair diagnosis and completion.
-2. Notifications.
-3. Playwright end-to-end tests.
-4. Deployment and production observability.
+- No payment processor yet.
+- In-app notifications only; no email/SMS delivery.
+- Evidence binary storage is optimized for a low-volume portfolio demo, not large production workloads.
+- Browser tests are smoke-level rather than full authenticated lifecycle automation.
+- `prisma db push` is used for the free demo deployment; a commercial production rollout should use reviewed versioned migrations.

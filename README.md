@@ -1,45 +1,115 @@
 # Repair Desk
 
-A full-stack multi-city repair-service platform for requesting repairs, assigning artisans, agreeing quotes before work begins, and keeping a clear record through completion.
+[![CI](https://github.com/Olatomii/repair-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/Olatomii/repair-desk/actions/workflows/ci.yml)
 
-This repository is the production-oriented evolution of an earlier interactive proof of concept.
+Repair Desk is a full-stack, multi-city repair-service workflow platform for requesting repairs, assigning verified artisans, agreeing quotes before work begins, recording repair evidence, and confirming handover.
 
-## Portfolio objective
+It began as an interactive proof of concept and has been rebuilt as a production-oriented portfolio application with persistent data, role-based authorization, transactional workflow rules, automated tests, CI, and deployment configuration.
 
-The project is intentionally designed to demonstrate practical full-stack engineering rather than only UI work:
+## Why this project exists
 
-- Next.js + TypeScript application architecture
-- Authentication and role-based workflows
-- PostgreSQL relational modeling, including multi-city service coverage
-- Prisma migrations and typed database access
-- Server-side validation and API endpoints
-- Transactional booking creation and lifecycle transitions
-- Audit/event history
-- Automated tests and CI
-- Docker-based local infrastructure
+Local repair work is often coordinated through calls and chat messages, which makes it difficult to answer simple questions: Who owns the job? What price was agreed? Has work started? What evidence exists? Has the customer accepted the handover?
 
-## City model
+Repair Desk turns those questions into an auditable workflow.
 
-Repair Desk is designed as a multi-city product. Abeokuta, Ogun State is the launch city, while city availability is stored in the database rather than hard-coded into the brand.
+## Core workflow
 
-## Roles
+```text
+REQUESTED
+   ↓ operator assigns an eligible artisan
+ASSIGNED
+   ↓ artisan submits quote
+QUOTED
+   ↓ client approves
+QUOTE_APPROVED
+   ↓ artisan starts work
+IN_PROGRESS
+   ↓ artisan uploads completion evidence and finishes work
+AWAITING_HANDOVER
+   ↓ client confirms handover
+COMPLETED
+```
 
-- **Client** — creates and tracks repair requests, approves/rejects quotes, and confirms handover.
-- **Artisan** — receives assigned jobs, quotes work, starts repairs, and marks work finished.
-- **Operator** — assigns eligible artisans and oversees service operations.
+A rejected quote returns to `ASSIGNED` for revision. `CANCELLED` and `DISPUTED` are reserved exceptional paths.
 
-## Current booking lifecycle
+## Features
 
-`REQUESTED → ASSIGNED → QUOTED → QUOTE_APPROVED → IN_PROGRESS → AWAITING_HANDOVER → COMPLETED`
+### Client
+- Email/password registration and sign-in
+- City and service selection
+- Repair request creation
+- Booking history and activity timeline
+- Quote approval or revision request
+- Before-repair/document evidence uploads
+- Secure evidence viewing
+- Handover confirmation
+- In-app notifications
 
-Quote rejection returns a booking to `ASSIGNED` for a revised quote while preserving the rejection in the audit trail.
+### Artisan
+- Role-scoped work dashboard
+- Assigned-job visibility
+- Quote submission
+- Diagnosis/document evidence uploads
+- Repair start and finish controls
+- After-repair evidence uploads
+- In-app notifications
 
-Additional paths: `CANCELLED`, `DISPUTED`.
+### Operator
+- Operations dashboard and queue metrics
+- New-request notifications
+- Eligibility-aware artisan assignment
+- City/service coverage checks
+- Evidence visibility
+
+### Platform engineering
+- Server-enforced role authorization
+- Transactional and conditional booking state transitions
+- Persistent audit/event history
+- Multi-city data model
+- PostgreSQL-backed evidence storage with strict file limits
+- Security response headers
+- Unit tests with Vitest
+- Browser smoke tests with Playwright
+- GitHub Actions CI
+- Docker Compose local database
+- Render deployment blueprint
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[Client / Artisan / Operator] --> UI[Next.js App Router UI]
+    UI --> AUTH[Better Auth]
+    UI --> API[Route Handlers]
+    API --> WF[Booking Workflow Service]
+    API --> EV[Evidence Service]
+    WF --> DB[(PostgreSQL)]
+    EV --> DB
+    DB --> N[Notifications + Audit Events]
+```
+
+Important workflow changes are not arbitrary UI updates. The server validates the actor, ownership/assignment, current booking state, and requested transition before persistence.
+
+## Multi-city design
+
+Abeokuta, Ogun State is the launch city, but the product name and schema are not city-specific. Cities are first-class records, artisans can cover many cities, and every booking belongs to one city. New cities can therefore be added without restructuring the product.
+
+## Evidence model
+
+Repair evidence is intentionally small and self-contained for the portfolio deployment:
+
+- Supported: JPG, PNG, WebP, PDF
+- Default maximum: 2 MB per file
+- Stored in PostgreSQL for the demo
+- Access is authorized against the booking before download
+- Clients, artisans, and operators have different upload permissions
+- Evidence type is restricted by booking lifecycle stage
+
+For a high-volume production system, the binary payload would move to object storage while PostgreSQL retained metadata and authorization state.
 
 ## Stack
 
-- Next.js 16
-- React 19
+- Next.js 16 / React 19
 - TypeScript
 - Tailwind CSS 4
 - PostgreSQL
@@ -47,86 +117,37 @@ Additional paths: `CANCELLED`, `DISPUTED`.
 - Better Auth
 - Zod
 - Vitest
+- Playwright
 - GitHub Actions
 - Docker Compose
+- Render
 
-## Local setup
+## Local development
 
-### 1. Requirements
-
-- Node.js 22+
-- Docker Desktop (recommended for PostgreSQL)
-
-### 2. Environment
-
-Copy the example file:
+Requirements: Node.js 22+ and Docker.
 
 ```bash
 cp .env.example .env
-```
-
-Generate a strong `BETTER_AUTH_SECRET` before using the project beyond local development.
-
-### 3. Start PostgreSQL
-
-```bash
 docker compose up -d
-```
-
-### 4. Install dependencies
-
-```bash
 npm install
-```
-
-### 5. Generate Prisma Client
-
-```bash
 npm run db:generate
-```
-
-### 6. Create the database migration
-
-```bash
-npm run db:migrate -- --name init
-```
-
-### 7. Seed launch city and service categories
-
-```bash
+npx prisma db push
 npm run db:seed
-```
-
-### 8. Run the app
-
-```bash
 npm run dev
 ```
 
 Open `http://localhost:3000`.
 
-## Testing the three roles locally
+### Create test roles
 
-Register three accounts through the app, then promote two of them:
+Register accounts through the UI first, then promote them locally:
 
 ```bash
 npm run user:role -- artisan@example.com ARTISAN
 npm run user:role -- operator@example.com OPERATOR
 ```
 
-Artisan promotion activates the profile and links it to all currently active launch cities and services. The third account can remain a client.
-
-The implemented flow is:
-
-1. Client creates a repair request.
-2. Operator assigns an eligible artisan.
-3. Artisan submits a quote.
-4. Client approves it or requests a revised quote.
-5. Artisan starts work.
-6. Artisan marks the work finished.
-7. Client confirms handover, completing the repair.
-
-See `LIFECYCLE.md` for workflow integrity rules.
+Promoting an artisan also creates/activates the artisan profile and links it to all currently active launch cities and services for convenient local testing.
 
 ## Quality checks
 
@@ -134,43 +155,40 @@ See `LIFECYCLE.md` for workflow integrity rules.
 npm run lint
 npm run typecheck
 npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-GitHub Actions runs these checks for pushes to `main` and pull requests.
+CI runs Prisma generation, linting, TypeScript checks, unit tests, a production build, and Chromium browser smoke tests for pull requests and pushes to `main`.
 
-## Current scope
+## Deployment
 
-Implemented foundation:
+`render.yaml` defines a free Render web service and free Render Postgres instance. The service builds the Next.js app, applies the Prisma schema on startup, seeds idempotent service/city data, and exposes `/api/health` for health checks.
 
-- Landing page adapted from the original Repair Desk concept
-- Email/password registration and sign-in
-- Client / Artisan / Operator role model
-- Multi-city client booking creation
-- Eligible artisan assignment
-- Artisan quote submission
-- Client quote approval/rejection
-- Artisan work start/finish transitions
-- Client handover confirmation
-- PostgreSQL data model
-- Booking event/audit records
-- Client, artisan, and operator dashboards
-- Validation and workflow tests
-- CI workflow
-- Docker PostgreSQL environment
+Set `BETTER_AUTH_URL` to the final HTTPS service URL. Secrets are never committed to the repository.
 
-## Roadmap
+## Security and scope
 
-The next portfolio-grade milestones are:
+- Server-side role and ownership checks are authoritative.
+- Evidence files are MIME/size constrained and served with `nosniff`.
+- Runtime secrets live in environment variables.
+- The application uses sample or consented data during portfolio development.
+- No real payments are processed yet.
+- This is a portfolio product, not an SLA-backed commercial marketplace.
 
-1. Photo/file evidence for diagnosis and completion
-2. Notifications
-3. Playwright end-to-end tests
-4. Deployment
-5. README screenshots and architecture diagram
+## Repository guide
 
-## Safety / product note
-
-The project is a portfolio application and should use sample or consented data during development. Do not store sensitive customer information or process real payments until production security, privacy, payment, and operational requirements have been reviewed.
+- `src/app/` — UI and route handlers
+- `src/lib/booking-workflow.ts` — transactional repair lifecycle
+- `src/lib/booking-state.ts` — allowed state transitions
+- `src/lib/evidence.ts` — evidence policy and validation
+- `prisma/schema.prisma` — relational model
+- `tests/` — unit tests
+- `e2e/` — browser smoke tests
+- `ARCHITECTURE.md` — technical boundaries and design decisions
+- `LIFECYCLE.md` — workflow rules
+- `PORTFOLIO_CASE_STUDY.md` — concise project case study
 
 ## License
 
