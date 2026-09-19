@@ -2,9 +2,13 @@ import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import MarkNotificationsRead from "@/components/mark-notifications-read";
+import SignOutButton from "@/components/sign-out-button";
 
 export default async function NotificationsPage() {
   const session = await requireSession();
+  const role = (session.user as typeof session.user & { role?: "CLIENT" | "ARTISAN" | "OPERATOR" }).role ?? "CLIENT";
+  const dashboardHref = role === "ARTISAN" ? "/artisan" : role === "OPERATOR" ? "/operator" : "/client";
+
   const notifications = await prisma.notification.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -18,7 +22,11 @@ export default async function NotificationsPage() {
           <p className="eyebrow">Account activity</p>
           <h1 className="mt-2 text-4xl font-black">Notifications</h1>
         </div>
-        <MarkNotificationsRead />
+        <div className="flex flex-wrap gap-3">
+          <Link className="button-secondary" href={dashboardHref}>Dashboard</Link>
+          <MarkNotificationsRead />
+          <SignOutButton />
+        </div>
       </div>
 
       <div className="mt-8 space-y-3">
