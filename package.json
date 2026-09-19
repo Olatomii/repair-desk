@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "user:role": "tsx scripts/set-role.ts"
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "^1.7.5",
