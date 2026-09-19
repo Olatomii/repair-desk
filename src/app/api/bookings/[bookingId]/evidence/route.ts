@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   roleCanUploadEvidence,
+  statusAllowsEvidence,
   validateEvidenceMetadata,
   type EvidenceKindValue,
 } from "@/lib/evidence";
@@ -21,9 +22,7 @@ export async function POST(
   const { bookingId } = await params;
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: {
-      artisan: { select: { userId: true } },
-    },
+    include: { artisan: { select: { userId: true } } },
   });
 
   if (!booking) {
@@ -47,17 +46,20 @@ export async function POST(
     return NextResponse.json({ error: "Choose a file to upload" }, { status: 400 });
   }
 
-  const validationError = validateEvidenceMetadata({
-    kind,
-    mimeType: file.type,
-    size: file.size,
-  });
+  const validationError = validateEvidenceMetadata({ kind, mimeType: file.type, size: file.size });
   if (validationError) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
   if (!roleCanUploadEvidence(role, kind)) {
     return NextResponse.json({ error: "That evidence type is not allowed for your role" }, { status: 403 });
+  }
+
+  if (!statusAllowsEvidence(role, kind, booking.status)) {
+    return NextResponse.json(
+      { error: "That evidence type cannot be added at this stage of the repair." },
+      { status: 409 },
+    );
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -85,21 +87,26 @@ export async function POST(
       },
     });
 
-    const recipientIds = new Set<string>();
-    if (booking.clientId !== session.user.id) recipientIds.add(booking.clientId);
+    const notifications: Array<{ userId: string; title: string; body: string; href: string }> = [];
+    if (booking.clientId !== session.user.id) {
+      notifications.push({
+        userId: booking.clientId,
+        title: "New repair evidence",
+        body: `${file.name.slice(0, 100)} was added to ${booking.reference}.`,
+        href: "/client",
+      });
+    }
     if (booking.artisan?.userId && booking.artisan.userId !== session.user.id) {
-      recipientIds.add(booking.artisan.userId);
+      notifications.push({
+        userId: booking.artisan.userId,
+        title: "New repair evidence",
+        body: `${file.name.slice(0, 100)} was added to ${booking.reference}.`,
+        href: "/artisan",
+      });
     }
 
-    if (recipientIds.size > 0) {
-      await tx.notification.createMany({
-        data: [...recipientIds].map((userId) => ({
-          userId,
-          title: "New repair evidence",
-          body: `${file.name.slice(0, 100)} was added to ${booking.reference}.`,
-          href: role === "ARTISAN" ? "/client" : "/artisan",
-        })),
-      });
+    if (notifications.length > 0) {
+      await tx.notification.createMany({ data: notifications });
     }
 
     return created;

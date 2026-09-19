@@ -48,3 +48,25 @@ export function roleCanUploadEvidence(role: string, kind: EvidenceKindValue) {
   if (role === "ARTISAN") return kind === "DIAGNOSIS" || kind === "AFTER" || kind === "DOCUMENT";
   return false;
 }
+
+export function statusAllowsEvidence(role: string, kind: EvidenceKindValue, status: string) {
+  if (status === "CANCELLED") return false;
+  if (role === "OPERATOR") return kind === "DOCUMENT";
+
+  if (role === "CLIENT") {
+    if (kind === "BEFORE") return status === "REQUESTED" || status === "ASSIGNED";
+    return kind === "DOCUMENT" && status !== "COMPLETED";
+  }
+
+  if (role === "ARTISAN") {
+    if (kind === "DIAGNOSIS") {
+      return ["ASSIGNED", "QUOTED", "QUOTE_APPROVED", "IN_PROGRESS"].includes(status);
+    }
+    if (kind === "AFTER") {
+      return status === "IN_PROGRESS" || status === "AWAITING_HANDOVER";
+    }
+    return kind === "DOCUMENT" && !["REQUESTED", "COMPLETED"].includes(status);
+  }
+
+  return false;
+}
