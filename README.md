@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Olatomii/repair-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/Olatomii/repair-desk/actions/workflows/ci.yml)
 
+**Live demo:** https://repair-desk-5jcz.onrender.com
+
 Repair Desk is a full-stack, multi-city repair-service workflow platform for requesting repairs, assigning verified artisans, agreeing quotes before work begins, recording repair evidence, and confirming handover.
 
 It began as an interactive proof of concept and has been rebuilt as a production-oriented portfolio application with persistent data, role-based authorization, transactional workflow rules, automated tests, CI, and deployment configuration.
@@ -165,6 +167,8 @@ CI runs Prisma generation, linting, TypeScript checks, unit tests, a production 
 ## Deployment
 
 `render.yaml` defines a free Render web service and free Render Postgres instance. The service builds the Next.js app, applies the Prisma schema on startup, seeds idempotent service/city data, and exposes `/api/health` for health checks.
+
+Production deployment: https://repair-desk-5jcz.onrender.com
 
 Set `BETTER_AUTH_URL` to the final HTTPS service URL. Secrets are never committed to the repository.
 
