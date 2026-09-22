@@ -19,20 +19,26 @@ export default function LoginPage() {
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
 
-    const result = await authClient.signIn.email({
-      email,
-      password,
-    });
+    try {
+      const result = await authClient.signIn.email({
+        email,
+        password,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (result.error) {
-      setError(result.error.message ?? "Unable to sign in.");
-      return;
+      if (result.error) {
+        setError(result.error.message ?? "Unable to sign in.");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

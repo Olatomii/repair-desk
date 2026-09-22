@@ -42,7 +42,8 @@ export async function GET(
       "Content-Type": evidence.mimeType,
       "Content-Length": String(evidence.size),
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(evidence.filename)}`,
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": "private, no-store",
+      "Content-Security-Policy": "sandbox; default-src 'none'",
       "X-Content-Type-Options": "nosniff",
     },
   });

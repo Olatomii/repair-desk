@@ -1,9 +1,14 @@
+import { notifyWorkflow } from "@/lib/workflow-notification";
 import { prisma } from "@/lib/prisma";
 import {
   assertActionAllowed,
   WorkflowError,
   type BookingStatusValue,
 } from "@/lib/booking-state";
+
+function nextUpdate(expected: string) {
+  return new Date(Math.max(Date.now(), new Date(expected).getTime() + 1));
+}
 
 function statusOf(status: string) {
   return status as BookingStatusValue;
@@ -13,10 +18,12 @@ export async function assignArtisan({
   bookingId,
   artisanId,
   actorId,
+  expectedUpdatedAt,
 }: {
   bookingId: string;
   artisanId: string;
   actorId: string;
+  expectedUpdatedAt: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
@@ -39,6 +46,7 @@ export async function assignArtisan({
       where: {
         id: artisanId,
         status: "ACTIVE",
+        user: { role: "ARTISAN" },
         cities: { some: { cityId: booking.cityId } },
         services: { some: { serviceId: booking.serviceCategoryId } },
       },
@@ -55,10 +63,12 @@ export async function assignArtisan({
 
     const updated = await tx.booking.updateMany({
       where: {
+        updatedAt: new Date(expectedUpdatedAt),
         id: bookingId,
-        status: { in: ["REQUESTED", "ASSIGNED"] },
+        status: booking.status,
       },
       data: {
+        updatedAt: nextUpdate(expectedUpdatedAt),
         artisanId,
         status: "ASSIGNED",
         quotedAmount: null,
@@ -86,6 +96,8 @@ export async function assignArtisan({
       },
     });
 
+    await notifyWorkflow(tx, bookingId, "ASSIGN_ARTISAN", actorId);
+
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
   });
 }
@@ -94,12 +106,14 @@ export async function submitQuote({
   bookingId,
   artisanUserId,
   actorId,
+  expectedUpdatedAt,
   amount,
   note,
 }: {
   bookingId: string;
   artisanUserId: string;
   actorId: string;
+  expectedUpdatedAt: string;
   amount: number;
   note?: string;
 }) {
@@ -138,11 +152,13 @@ export async function submitQuote({
 
     const updated = await tx.booking.updateMany({
       where: {
+        updatedAt: new Date(expectedUpdatedAt),
         id: bookingId,
         artisanId: artisan.id,
         status: "ASSIGNED",
       },
       data: {
+        updatedAt: nextUpdate(expectedUpdatedAt),
         status: "QUOTED",
         quotedAmount: amount,
         quoteNote: note || null,
@@ -169,6 +185,8 @@ export async function submitQuote({
       },
     });
 
+    await notifyWorkflow(tx, bookingId, "SUBMIT_QUOTE", actorId);
+
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
   });
 }
@@ -177,11 +195,13 @@ export async function respondToQuote({
   bookingId,
   clientId,
   actorId,
+  expectedUpdatedAt,
   decision,
 }: {
   bookingId: string;
   clientId: string;
   actorId: string;
+  expectedUpdatedAt: string;
   decision: "APPROVE" | "REJECT";
 }) {
   return prisma.$transaction(async (tx) => {
@@ -222,11 +242,19 @@ export async function respondToQuote({
             status: "ASSIGNED" as const,
             quoteApprovedAt: null,
             quoteRejectedAt: now,
+            quotedAmount: null,
+            quoteNote: null,
+            quotedAt: null,
           };
 
     const updated = await tx.booking.updateMany({
-      where: { id: bookingId, clientId, status: "QUOTED" },
-      data,
+      where: {
+        updatedAt: new Date(expectedUpdatedAt),
+        id: bookingId,
+        clientId,
+        status: "QUOTED",
+      },
+      data: { ...data, updatedAt: nextUpdate(expectedUpdatedAt) },
     });
 
     if (updated.count !== 1) {
@@ -249,6 +277,8 @@ export async function respondToQuote({
       },
     });
 
+    await notifyWorkflow(tx, bookingId, action, actorId);
+
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
   });
 }
@@ -257,15 +287,18 @@ export async function startWork({
   bookingId,
   artisanUserId,
   actorId,
+  expectedUpdatedAt,
 }: {
   bookingId: string;
   artisanUserId: string;
   actorId: string;
+  expectedUpdatedAt: string;
 }) {
   return artisanTransition({
     bookingId,
     artisanUserId,
     actorId,
+    expectedUpdatedAt,
     action: "START_WORK",
     from: "QUOTE_APPROVED",
     to: "IN_PROGRESS",
@@ -279,15 +312,18 @@ export async function markWorkComplete({
   bookingId,
   artisanUserId,
   actorId,
+  expectedUpdatedAt,
 }: {
   bookingId: string;
   artisanUserId: string;
   actorId: string;
+  expectedUpdatedAt: string;
 }) {
   return artisanTransition({
     bookingId,
     artisanUserId,
     actorId,
+    expectedUpdatedAt,
     action: "MARK_WORK_COMPLETE",
     from: "IN_PROGRESS",
     to: "AWAITING_HANDOVER",
@@ -301,6 +337,7 @@ async function artisanTransition({
   bookingId,
   artisanUserId,
   actorId,
+  expectedUpdatedAt,
   action,
   from,
   to,
@@ -311,6 +348,7 @@ async function artisanTransition({
   bookingId: string;
   artisanUserId: string;
   actorId: string;
+  expectedUpdatedAt: string;
   action: "START_WORK" | "MARK_WORK_COMPLETE";
   from: "QUOTE_APPROVED" | "IN_PROGRESS";
   to: "IN_PROGRESS" | "AWAITING_HANDOVER";
@@ -353,11 +391,13 @@ async function artisanTransition({
 
     const updated = await tx.booking.updateMany({
       where: {
+        updatedAt: new Date(expectedUpdatedAt),
         id: bookingId,
         artisanId: artisan.id,
         status: from,
       },
       data: {
+        updatedAt: nextUpdate(expectedUpdatedAt),
         status: to,
         ...extraData,
       },
@@ -380,6 +420,8 @@ async function artisanTransition({
       },
     });
 
+    await notifyWorkflow(tx, bookingId, action, actorId);
+
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
   });
 }
@@ -388,10 +430,12 @@ export async function confirmHandover({
   bookingId,
   clientId,
   actorId,
+  expectedUpdatedAt,
 }: {
   bookingId: string;
   clientId: string;
   actorId: string;
+  expectedUpdatedAt: string;
 }) {
   return prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
@@ -416,11 +460,13 @@ export async function confirmHandover({
     const now = new Date();
     const updated = await tx.booking.updateMany({
       where: {
+        updatedAt: new Date(expectedUpdatedAt),
         id: bookingId,
         clientId,
         status: "AWAITING_HANDOVER",
       },
       data: {
+        updatedAt: nextUpdate(expectedUpdatedAt),
         status: "COMPLETED",
         handoverConfirmedAt: now,
         completedAt: now,
@@ -450,6 +496,8 @@ export async function confirmHandover({
         note: "Client confirmed handover; repair completed.",
       },
     });
+
+    await notifyWorkflow(tx, bookingId, "CONFIRM_HANDOVER", actorId);
 
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
   });

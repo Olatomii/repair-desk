@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ArtisanQuoteForm({ bookingId }: { bookingId: string }) {
+export default function ArtisanQuoteForm({ bookingId, expectedUpdatedAt }: { bookingId: string; expectedUpdatedAt: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -17,25 +17,32 @@ export default function ArtisanQuoteForm({ bookingId }: { bookingId: string }) {
     const amount = Number(form.get("amount"));
     const note = String(form.get("note") ?? "").trim();
 
-    const response = await fetch(`/api/bookings/${bookingId}/action`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "SUBMIT_QUOTE",
-        amount,
-        note: note || undefined,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedUpdatedAt,
+          action: "SUBMIT_QUOTE",
+          amount,
+          note: note || undefined,
+        }),
+      });
 
-    const result = (await response.json()) as { error?: string };
-    setPending(false);
+      const result = (await response.json()) as { error?: string };
+      setPending(false);
 
-    if (!response.ok) {
-      setError(result.error ?? "Unable to submit quote.");
-      return;
+      if (!response.ok) {
+        setError(result.error ?? "Unable to submit quote.");
+        return;
+      }
+
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setPending(false);
     }
-
-    router.refresh();
   }
 
   return (

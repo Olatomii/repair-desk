@@ -1,3 +1,4 @@
+import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
 import { requireRole } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import ArtisanQuoteForm from "@/components/artisan-quote-form";
@@ -6,7 +7,8 @@ import EvidenceList from "@/components/evidence-list";
 import EvidenceUpload from "@/components/evidence-upload";
 import NotificationsLink from "@/components/notifications-link";
 
-export default async function ArtisanDashboard() {
+export default async function ArtisanDashboard({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
+  const page = bookingPage((await searchParams).page);
   const { session } = await requireRole(["ARTISAN"]);
 
   const [profile, unreadCount] = await Promise.all([
@@ -31,8 +33,9 @@ export default async function ArtisanDashboard() {
               },
             },
           },
-          orderBy: { updatedAt: "desc" },
-          take: 20,
+          orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+          skip: (page - 1) * BOOKING_PAGE_SIZE,
+          take: BOOKING_PAGE_SIZE + 1,
         },
       },
     }),
@@ -55,7 +58,7 @@ export default async function ArtisanDashboard() {
         <div className="card mt-8 p-7">No jobs are currently assigned.</div>
       ) : (
         <div className="mt-8 space-y-4">
-          {profile.bookings.map((booking) => (
+          {profile.bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => (
             <article key={booking.id} className="card p-6">
               <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                 <div>
@@ -63,6 +66,8 @@ export default async function ArtisanDashboard() {
                   <h2 className="mt-2 text-xl font-black">{booking.serviceCategory.name} · {booking.city.name}</h2>
                   <p className="mt-2 text-sm leading-6 text-[#64706a]">{booking.problemDescription}</p>
                   <p className="mt-3 text-sm">Client: <strong>{booking.client.name}</strong></p>
+                  {booking.address ? <p className="mt-2 text-sm">Service address: {booking.address}</p> : null}
+                  {booking.preferredDate ? <p className="mt-2 text-sm">Preferred date: {booking.preferredDate.toISOString().slice(0, 10)}</p> : null}
                 </div>
                 <span className="h-fit rounded-full bg-[#edf3ef] px-3 py-1 text-xs font-black text-[#1f5b45]">{booking.status.replaceAll("_", " ")}</span>
               </div>
@@ -70,7 +75,7 @@ export default async function ArtisanDashboard() {
               {booking.status === "ASSIGNED" ? (
                 <>
                   {booking.quoteRejectedAt ? <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900">The previous quote was rejected. Submit a revised quote when ready.</p> : null}
-                  <ArtisanQuoteForm bookingId={booking.id} />
+                  <ArtisanQuoteForm expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} />
                 </>
               ) : null}
 
@@ -82,8 +87,8 @@ export default async function ArtisanDashboard() {
                 </div>
               ) : null}
 
-              {booking.status === "QUOTE_APPROVED" ? <div className="mt-4"><WorkflowButton bookingId={booking.id} action="START_WORK">Start repair</WorkflowButton></div> : null}
-              {booking.status === "IN_PROGRESS" ? <div className="mt-4"><WorkflowButton bookingId={booking.id} action="MARK_WORK_COMPLETE">Mark work finished</WorkflowButton></div> : null}
+              {booking.status === "QUOTE_APPROVED" ? <div className="mt-4"><WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="START_WORK">Start repair</WorkflowButton></div> : null}
+              {booking.status === "IN_PROGRESS" ? <div className="mt-4"><WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="MARK_WORK_COMPLETE">Mark work finished</WorkflowButton></div> : null}
               {booking.status === "AWAITING_HANDOVER" ? <p className="mt-4 rounded-xl bg-[#edf3ef] p-4 text-sm font-semibold text-[#1f5b45]">Work is marked finished. Waiting for the client to confirm handover.</p> : null}
 
               <EvidenceList evidence={booking.evidence} />
@@ -98,6 +103,7 @@ export default async function ArtisanDashboard() {
           ))}
         </div>
       )}
+      <BookingPagination page={page} hasNext={(profile?.bookings.length ?? 0) > BOOKING_PAGE_SIZE} href="/artisan" />
     </main>
   );
 }
