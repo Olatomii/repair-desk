@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 type Service = {
@@ -29,6 +29,7 @@ export default function BookingForm({
   const [cityId, setCityId] = useState(cities[0]?.id ?? "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const requestKey = useRef<string | null>(null);
 
   const selected = useMemo(
     () => services.find((service) => service.id === selectedId),
@@ -41,29 +42,37 @@ export default function BookingForm({
     setError("");
 
     const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        serviceCategoryId: selectedId,
-        cityId,
-        problemDescription: String(form.get("problemDescription") ?? ""),
-        address: String(form.get("address") ?? "") || undefined,
-        preferredDate: String(form.get("preferredDate") ?? "") || undefined,
-      }),
-    });
+    requestKey.current ??= crypto.randomUUID();
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": requestKey.current },
+        body: JSON.stringify({
+          serviceCategoryId: selectedId,
+          cityId,
+          problemDescription: String(form.get("problemDescription") ?? ""),
+          address: String(form.get("address") ?? "") || undefined,
+          preferredDate: String(form.get("preferredDate") ?? "") || undefined,
+        }),
+      });
 
-    const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as { error?: string };
 
-    setLoading(false);
+      setLoading(false);
 
-    if (!response.ok) {
-      setError(data.error ?? "Unable to create booking.");
-      return;
+      if (!response.ok) {
+        if (response.status >= 400 && response.status < 500) requestKey.current = null;
+        setError(data.error ?? "Unable to create booking.");
+        return;
+      }
+
+      router.push("/client");
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/client");
-    router.refresh();
   }
 
   if (services.length === 0 || cities.length === 0) {

@@ -20,21 +20,27 @@ export default function RegisterPage() {
     const email = String(form.get("email") ?? "");
     const password = String(form.get("password") ?? "");
 
-    const result = await authClient.signUp.email({
-      name,
-      email,
-      password,
-    });
+    try {
+      const result = await authClient.signUp.email({
+        name,
+        email,
+        password,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (result.error) {
-      setError(result.error.message ?? "Unable to create account.");
-      return;
+      if (result.error) {
+        setError(result.error.message ?? "Unable to create account.");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (

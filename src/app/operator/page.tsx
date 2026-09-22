@@ -1,15 +1,17 @@
+import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
 import { requireRole } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import OperatorAssignment from "@/components/operator-assignment";
 import EvidenceList from "@/components/evidence-list";
 import NotificationsLink from "@/components/notifications-link";
 
-export default async function OperatorDashboard() {
+export default async function OperatorDashboard({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
+  const page = bookingPage((await searchParams).page);
   const { session } = await requireRole(["OPERATOR"]);
 
   const [requested, activeArtisans, totalBookings, bookings, artisans, unreadCount] = await Promise.all([
     prisma.booking.count({ where: { status: "REQUESTED" } }),
-    prisma.artisanProfile.count({ where: { status: "ACTIVE" } }),
+    prisma.artisanProfile.count({ where: { status: "ACTIVE", user: { role: "ARTISAN" } } }),
     prisma.booking.count(),
     prisma.booking.findMany({
       where: { status: { in: ["REQUESTED", "ASSIGNED"] } },
@@ -31,11 +33,12 @@ export default async function OperatorDashboard() {
           },
         },
       },
-      orderBy: { createdAt: "asc" },
-      take: 20,
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      skip: (page - 1) * BOOKING_PAGE_SIZE,
+      take: BOOKING_PAGE_SIZE + 1,
     }),
     prisma.artisanProfile.findMany({
-      where: { status: "ACTIVE" },
+      where: { status: "ACTIVE", user: { role: "ARTISAN" } },
       include: {
         user: { select: { name: true } },
         cities: { select: { cityId: true } },
@@ -70,7 +73,7 @@ export default async function OperatorDashboard() {
           {bookings.length === 0 ? (
             <div className="card p-7 text-[#64706a]">No requested or assignable repairs are waiting.</div>
           ) : (
-            bookings.map((booking) => {
+            bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => {
               const eligible = artisans
                 .filter((artisan) => artisan.cities.some((city) => city.cityId === booking.cityId) && artisan.services.some((service) => service.serviceId === booking.serviceCategoryId))
                 .map((artisan) => ({ id: artisan.id, name: artisan.user.name }));
@@ -83,6 +86,8 @@ export default async function OperatorDashboard() {
                       <h3 className="mt-2 text-xl font-black">{booking.serviceCategory.name} · {booking.city.name}</h3>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64706a]">{booking.problemDescription}</p>
                       <p className="mt-3 text-sm">Client: <strong>{booking.client.name}</strong></p>
+                      {booking.address ? <p className="mt-2 text-sm">Service address: {booking.address}</p> : null}
+                      {booking.preferredDate ? <p className="mt-2 text-sm">Preferred date: {booking.preferredDate.toISOString().slice(0, 10)}</p> : null}
                     </div>
                     <div className="text-sm text-[#64706a] md:text-right">
                       {booking.artisan ? <>Current artisan<div className="mt-1 font-black text-[#1e2522]">{booking.artisan.user.name}</div></> : "Unassigned"}
@@ -90,13 +95,14 @@ export default async function OperatorDashboard() {
                   </div>
 
                   <EvidenceList evidence={booking.evidence} />
-                  <OperatorAssignment bookingId={booking.id} currentArtisanId={booking.artisanId} artisans={eligible} />
+                  <OperatorAssignment expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} currentArtisanId={booking.artisanId} artisans={eligible} />
                 </article>
               );
             })
           )}
         </div>
       </section>
+      <BookingPagination page={page} hasNext={bookings.length > BOOKING_PAGE_SIZE} href="/operator" />
     </main>
   );
 }

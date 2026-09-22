@@ -37,6 +37,7 @@ describe("booking workflow payloads", () => {
     expect(
       bookingActionSchema.safeParse({
         action: "SUBMIT_QUOTE",
+        expectedUpdatedAt: "2026-09-20T00:00:00.000Z",
         amount: 18500,
         note: "Replacement part and labour",
       }).success,
@@ -47,6 +48,7 @@ describe("booking workflow payloads", () => {
     expect(
       bookingActionSchema.safeParse({
         action: "SUBMIT_QUOTE",
+        expectedUpdatedAt: "2026-09-20T00:00:00.000Z",
         amount: 0,
       }).success,
     ).toBe(false);

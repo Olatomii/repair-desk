@@ -1,9 +1,12 @@
+import { rejectCrossOrigin, readLimitedBody } from "@/lib/request-validation";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   roleCanUploadEvidence,
+  evidenceMatchesType,
+  maxEvidenceBytes,
   statusAllowsEvidence,
   validateEvidenceMetadata,
   type EvidenceKindValue,
@@ -13,6 +16,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ bookingId: string }> },
 ) {
+  const originError = rejectCrossOrigin(request);
+  if (originError) return originError;
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -22,7 +27,7 @@ export async function POST(
   const { bookingId } = await params;
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { artisan: { select: { userId: true } } },
+    include: { artisan: { select: { userId: true, status: true } } },
   });
 
   if (!booking) {
@@ -32,13 +37,19 @@ export async function POST(
   const canAccess =
     role === "OPERATOR" ||
     (role === "CLIENT" && booking.clientId === session.user.id) ||
-    (role === "ARTISAN" && booking.artisan?.userId === session.user.id);
+    (role === "ARTISAN" && booking.artisan?.userId === session.user.id && booking.artisan.status === "ACTIVE");
 
   if (!canAccess) {
     return NextResponse.json({ error: "You cannot add evidence to this booking" }, { status: 403 });
   }
 
-  const form = await request.formData();
+  let form: FormData;
+  try {
+    const body = await readLimitedBody(request, maxEvidenceBytes() + 16_384);
+    form = await new Response(body, { headers: { "Content-Type": request.headers.get("content-type") ?? "" } }).formData();
+  } catch {
+    return NextResponse.json({ error: "Invalid upload form." }, { status: 400 });
+  }
   const file = form.get("file");
   const kind = String(form.get("kind") ?? "") as EvidenceKindValue;
 
@@ -63,8 +74,18 @@ export async function POST(
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!evidenceMatchesType(bytes, file.type)) {
+    return NextResponse.json({ error: "File content does not match its type." }, { status: 400 });
+  }
 
   const evidence = await prisma.$transaction(async (tx) => {
+    // Lock through a conditional write so reassignment/lifecycle changes cannot
+    // invalidate the authorization checked before parsing the upload.
+    const locked = await tx.booking.updateMany({
+      where: { id: bookingId, updatedAt: booking.updatedAt, status: booking.status, artisanId: booking.artisanId },
+      data: { updatedAt: new Date(Math.max(Date.now(), booking.updatedAt.getTime() + 1)) },
+    });
+    if (locked.count !== 1) return null;
     const created = await tx.bookingEvidence.create({
       data: {
         bookingId,
@@ -112,5 +133,6 @@ export async function POST(
     return created;
   });
 
+  if (!evidence) return NextResponse.json({ error: "Booking changed. Refresh and try again." }, { status: 409 });
   return NextResponse.json(evidence, { status: 201 });
 }

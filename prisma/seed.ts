@@ -7,7 +7,6 @@ async function main() {
       name: "Abeokuta",
       state: "Ogun State",
       country: "Nigeria",
-      isActive: true,
     },
     create: {
       slug: "abeokuta",

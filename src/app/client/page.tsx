@@ -1,3 +1,4 @@
+import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -6,7 +7,8 @@ import EvidenceList from "@/components/evidence-list";
 import EvidenceUpload from "@/components/evidence-upload";
 import NotificationsLink from "@/components/notifications-link";
 
-export default async function ClientDashboard() {
+export default async function ClientDashboard({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
+  const page = bookingPage((await searchParams).page);
   const { session } = await requireRole(["CLIENT"]);
 
   const [bookings, unreadCount] = await Promise.all([
@@ -30,8 +32,9 @@ export default async function ClientDashboard() {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
-      take: 20,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * BOOKING_PAGE_SIZE,
+      take: BOOKING_PAGE_SIZE + 1,
     }),
     prisma.notification.count({ where: { userId: session.user.id, readAt: null } }),
   ]);
@@ -56,7 +59,7 @@ export default async function ClientDashboard() {
             <p className="mt-2 text-[#64706a]">Start with plumbing or phone repair and your request will appear here.</p>
           </div>
         ) : (
-          bookings.map((booking) => (
+          bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => (
             <article key={booking.id} className="card p-6">
               <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                 <div>
@@ -76,8 +79,8 @@ export default async function ClientDashboard() {
                   <div className="mt-2 text-2xl font-black">NGN {booking.quotedAmount?.toString()}</div>
                   {booking.quoteNote ? <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64706a]">{booking.quoteNote}</p> : null}
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <WorkflowButton bookingId={booking.id} action="APPROVE_QUOTE">Approve quote</WorkflowButton>
-                    <WorkflowButton bookingId={booking.id} action="REJECT_QUOTE" tone="secondary">Request revised quote</WorkflowButton>
+                    <WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="APPROVE_QUOTE">Approve quote</WorkflowButton>
+                    <WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="REJECT_QUOTE" tone="secondary">Request revised quote</WorkflowButton>
                   </div>
                 </div>
               ) : null}
@@ -87,7 +90,7 @@ export default async function ClientDashboard() {
                   <p className="eyebrow">Handover</p>
                   <h3 className="mt-2 text-xl font-black">Artisan marked the repair finished</h3>
                   <p className="mt-2 text-sm leading-6 text-[#64706a]">Review the completion evidence, then confirm only after you have received the repaired item or inspected the completed work.</p>
-                  <div className="mt-4"><WorkflowButton bookingId={booking.id} action="CONFIRM_HANDOVER">Confirm handover</WorkflowButton></div>
+                  <div className="mt-4"><WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="CONFIRM_HANDOVER">Confirm handover</WorkflowButton></div>
                 </div>
               ) : null}
 
@@ -112,6 +115,7 @@ export default async function ClientDashboard() {
           ))
         )}
       </div>
+      <BookingPagination page={page} hasNext={bookings.length > BOOKING_PAGE_SIZE} href="/client" />
     </main>
   );
 }

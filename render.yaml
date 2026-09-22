@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: free
     region: frankfurt
-    buildCommand: npm install && npm run db:generate && npm run build
-    startCommand: npx prisma db push && npm run db:seed && npm start
+    buildCommand: npm ci && npm run db:generate && npm run build
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL

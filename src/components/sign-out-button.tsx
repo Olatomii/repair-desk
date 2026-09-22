@@ -7,17 +7,26 @@ import { authClient } from "@/lib/auth-client";
 export default function SignOutButton() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function signOut() {
     setLoading(true);
-    await authClient.signOut();
-    router.push("/");
-    router.refresh();
+    setError("");
+    try {
+      const result = await authClient.signOut();
+      if (result.error) throw new Error();
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Unable to sign out. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <button className="button-secondary" onClick={signOut} disabled={loading}>
+    <div><button className="button-secondary" onClick={signOut} disabled={loading}>
       {loading ? "Signing out..." : "Sign out"}
-    </button>
+    </button>{error ? <p role="alert">{error}</p> : null}</div>
   );
 }

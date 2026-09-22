@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 
 export default function WorkflowButton({
   bookingId,
+  expectedUpdatedAt,
   action,
   children,
   tone = "primary",
 }: {
   bookingId: string;
+  expectedUpdatedAt: string;
   action:
     | "APPROVE_QUOTE"
     | "REJECT_QUOTE"
@@ -27,21 +29,27 @@ export default function WorkflowButton({
     setPending(true);
     setError("");
 
-    const response = await fetch(`/api/bookings/${bookingId}/action`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedUpdatedAt, action }),
+      });
 
-    const result = (await response.json()) as { error?: string };
-    setPending(false);
+      const result = (await response.json()) as { error?: string };
+      setPending(false);
 
-    if (!response.ok) {
-      setError(result.error ?? "Unable to update this repair.");
-      return;
+      if (!response.ok) {
+        setError(result.error ?? "Unable to update this repair.");
+        return;
+      }
+
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setPending(false);
     }
-
-    router.refresh();
   }
 
   return (

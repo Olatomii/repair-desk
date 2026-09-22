@@ -10,10 +10,12 @@ export type ArtisanOption = {
 
 export default function OperatorAssignment({
   bookingId,
+  expectedUpdatedAt,
   currentArtisanId,
   artisans,
 }: {
   bookingId: string;
+  expectedUpdatedAt: string;
   currentArtisanId?: string | null;
   artisans: ArtisanOption[];
 }) {
@@ -33,21 +35,27 @@ export default function OperatorAssignment({
     setPending(true);
     setError("");
 
-    const response = await fetch(`/api/bookings/${bookingId}/action`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "ASSIGN_ARTISAN", artisanId }),
-    });
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedUpdatedAt, action: "ASSIGN_ARTISAN", artisanId }),
+      });
 
-    const result = (await response.json()) as { error?: string };
-    setPending(false);
+      const result = (await response.json()) as { error?: string };
+      setPending(false);
 
-    if (!response.ok) {
-      setError(result.error ?? "Unable to assign artisan.");
-      return;
+      if (!response.ok) {
+        setError(result.error ?? "Unable to assign artisan.");
+        return;
+      }
+
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setPending(false);
     }
-
-    router.refresh();
   }
 
   if (artisans.length === 0) {

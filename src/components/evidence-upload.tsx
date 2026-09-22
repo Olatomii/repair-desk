@@ -19,21 +19,28 @@ export default function EvidenceUpload({
     setError("");
     setLoading(true);
 
-    const formData = new FormData(event.currentTarget);
-    const response = await fetch(`/api/bookings/${bookingId}/evidence`, {
-      method: "POST",
-      body: formData,
-    });
-    const data = (await response.json()) as { error?: string };
-    setLoading(false);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/evidence`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await response.json()) as { error?: string };
+      setLoading(false);
 
-    if (!response.ok) {
-      setError(data.error ?? "Unable to upload evidence.");
-      return;
+      if (!response.ok) {
+        setError(data.error ?? "Unable to upload evidence.");
+        return;
+      }
+
+      form.reset();
+      router.refresh();
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    event.currentTarget.reset();
-    router.refresh();
   }
 
   return (

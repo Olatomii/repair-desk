@@ -9,6 +9,20 @@ export const EVIDENCE_KINDS = ["BEFORE", "DIAGNOSIS", "AFTER", "DOCUMENT"] as co
 
 export type EvidenceKindValue = (typeof EVIDENCE_KINDS)[number];
 
+// Signatures reject obvious MIME spoofing; downloads remain sandboxed because
+// a signature alone cannot establish that an entire document is harmless.
+export function evidenceMatchesType(bytes: Uint8Array, mime: string) {
+  const starts = (signature: number[]) => signature.every((byte, i) => bytes[i] === byte);
+  if (mime === "image/jpeg") return starts([0xff, 0xd8, 0xff]);
+  if (mime === "image/png") return starts([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (mime === "application/pdf") return starts([37, 80, 68, 70, 45]);
+  if (mime === "image/webp") {
+    return starts([82, 73, 70, 70]) &&
+      [87, 69, 66, 80].every((byte, i) => bytes[i + 8] === byte);
+  }
+  return false;
+}
+
 export function maxEvidenceBytes() {
   const configured = Number(process.env.MAX_EVIDENCE_BYTES ?? 2_097_152);
   return Number.isFinite(configured) && configured > 0 ? configured : 2_097_152;

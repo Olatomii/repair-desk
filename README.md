@@ -71,7 +71,7 @@ A rejected quote returns to `ASSIGNED` for revision. `CANCELLED` and `DISPUTED` 
 - PostgreSQL-backed evidence storage with strict file limits
 - Security response headers
 - Unit tests with Vitest
-- Browser smoke tests with Playwright
+- Authenticated workflow and browser regression tests with Playwright
 - GitHub Actions CI
 - Docker Compose local database
 - Render deployment blueprint
@@ -131,7 +131,7 @@ Requirements: Node.js 22+ and Docker.
 ```bash
 cp .env.example .env
 docker compose up -d
-npm install
+npm ci
 npm run db:generate
 npx prisma db push
 npm run db:seed
@@ -162,15 +162,17 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-CI runs Prisma generation, linting, TypeScript checks, unit tests, a production build, and Chromium browser smoke tests for pull requests and pushes to `main`.
+CI starts isolated PostgreSQL and runs Prisma generation, linting, TypeScript checks, unit tests, a production build, and authenticated Chromium workflow tests for pull requests and pushes to `main`.
 
 ## Deployment
 
-`render.yaml` defines a free Render web service and free Render Postgres instance. The service builds the Next.js app, applies the Prisma schema on startup, seeds idempotent service/city data, and exposes `/api/health` for health checks.
+`render.yaml` defines a free Render web service and free Render Postgres instance. Startup runs only the web process. Initialize a new database explicitly before its first deployment; see [deployment operations](DEPLOYMENT.md). `/api/health` verifies database connectivity. Free databases expire, so this configuration is for a temporary demo.
 
 Production deployment: https://repair-desk-5jcz.onrender.com
 
 Set `BETTER_AUTH_URL` to the final HTTPS service URL. Secrets are never committed to the repository.
+
+See [the bug audit](AUDIT.md) for verified fixes and remaining limitations. Existing browser tabs should be refreshed after the audit release: booking creation now requires a client-scoped idempotency key, and workflow actions require the displayed booking's update timestamp.
 
 ## Security and scope
 

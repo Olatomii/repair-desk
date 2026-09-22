@@ -3,6 +3,10 @@ node_modules/
 out/
 dist/
 coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+next-env.d.ts
 generated/
 .env
 .env.local

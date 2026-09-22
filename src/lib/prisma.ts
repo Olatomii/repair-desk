@@ -11,7 +11,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const adapter = new PrismaPg({ connectionString });
+const adapter = new PrismaPg({ connectionString, connectionTimeoutMillis: 5_000, query_timeout: 5_000 });
 
 export const prisma =
   globalForPrisma.prisma ??
