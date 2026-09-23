@@ -133,7 +133,7 @@ cp .env.example .env
 docker compose up -d
 npm ci
 npm run db:generate
-npx prisma db push
+npm run db:deploy
 npm run db:seed
 npm run dev
 ```

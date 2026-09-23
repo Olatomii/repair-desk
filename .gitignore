@@ -12,6 +12,8 @@ generated/
 .env.local
 .env.*.local
 *.log
+backups/
+*.dump
 .DS_Store
 .vscode/
 .idea/
