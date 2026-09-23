@@ -8,13 +8,19 @@ For a **new, empty development/demo database**, explicitly run:
 ```sh
 npm ci
 npm run db:generate
-npx prisma db push
+npm run db:deploy
 npm run db:seed
 ```
 
 Do this once before the first deployment. The existing Repair Desk deployment
 already has its schema and launch data; the audit changes require no database
 schema changes or data migrations.
+
+The repository now includes `prisma/migrations/0_init/migration.sql`, generated
+from the existing Prisma schema. It creates the current schema for empty databases.
+It has **not been verified against or marked applied on production**. Follow
+[DATABASE-RECOVERY.md](DATABASE-RECOVERY.md) before using `db:deploy` against an
+existing database. CI tests fresh installation and adoption of a db-push database.
 
 For an existing production database, take a verified backup, inspect schema
 drift, baseline Prisma Migrate against the actual schema, and apply reviewed

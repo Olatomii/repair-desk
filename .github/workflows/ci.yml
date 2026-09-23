@@ -45,7 +45,10 @@ jobs:
         run: npm run db:generate
 
       - name: Prepare isolated test database
-        run: npx prisma db push && npm run db:seed
+        run: npm run db:deploy && npm run db:check && npm run db:seed
+
+      - name: Test fresh database and existing database baseline
+        run: npm run test:migrations
 
       - name: Lint
         run: npm run lint
