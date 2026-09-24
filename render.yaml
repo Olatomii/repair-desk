@@ -9,15 +9,16 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: repair-desk-db
-          property: connectionString
+        # Neon Free connection is configured privately in the Render dashboard.
+        sync: false
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
         sync: false
 
 databases:
+  # Retained source for migration rollback; the web service no longer references it.
+  # Do not delete it until the verified backup has been retained safely.
   - name: repair-desk-db
     plan: free
     region: frankfurt
