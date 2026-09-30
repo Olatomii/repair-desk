@@ -2,36 +2,43 @@
 
 ## Current status
 
-Repair Desk's Render database is `dpg-dan5khbtqb8s73amjid0-a` in Frankfurt.
-The last successful metadata inspection on September 23, 2026 showed PostgreSQL
-18 on the Free plan, expiring October 19, 2026. Metadata access is not a backup.
-The SQL connector failed with TLS/EOF errors. No production schema comparison,
-backup, restore drill, or migration baseline has been completed.
+Production moved to Neon Free (PostgreSQL 18) on September 24, 2026. The Render
+web service remains free. Its private `DATABASE_URL` uses the Neon direct endpoint
+with `sslmode=verify-full`; Blueprint sync no longer replaces that value.
+No paid plan was activated.
 
-The initial migration is generated from the repository schema. It is tested on
-disposable local databases; it is not proof that production has no drift.
+The cutover archive was restored locally and then into Neon's empty public
+schema. Counts and content hashes matched for all 13 application tables. Prisma
+reported no schema drift, baseline `0_init` was marked applied, and migration
+status/deploy checks reported no pending migrations. Do not edit that baseline.
+
+Live signup, login, booking, assignment, quoting, approval, work, evidence upload
+and download, handover, notifications and logout passed after cutover. Temporary
+test records were removed and existing table hashes remained unchanged. The
+database-aware health endpoint returned HTTP 200 again on September 30, 2026.
 Web startup remains `npm start`; schema changes never run on restart.
 
 ## Hosting decision
 
-The simplest continuity option is upgrading the existing database in place,
-preserving its identity and application connection. Review the exact price in
-the [database dashboard](https://dashboard.render.com/d/dpg-dan5khbtqb8s73amjid0-a)
-before purchase. Published pricing inspected September 22 starts at $6/month
-for 256 MB compute plus $0.30/GB/month storage (taxes and other usage excluded).
-The web service can remain free for a portfolio demonstration.
+The owner selected free hosting. Neon project `bold-truth-48797948` holds the
+production database. Its production branch showed no expiry and a six-hour
+recovery history at cutover; check current account limits before relying on them.
 
-[Paid database recovery](https://render.com/docs/postgresql-backups) includes
-point-in-time recovery: three days on Hobby workspaces, seven on Pro or higher.
-Logical exports are retained by Render for seven days; retain an encrypted copy
-outside Render for longer retention. Recovery does not cover dates before it
-was enabled. Confirm the recovery window in the dashboard after upgrading.
-Pricing source: https://render.com/pricing
+The old Render database `dpg-dan5khbtqb8s73amjid0-a` is retained as a cutover
+snapshot, not a live replica. Its October 19, 2026 expiry no longer controls the
+live app's database lifetime. Do not point the app back to it without reconciling
+writes made on Neon since cutover. Do not delete it as part of routine cleanup.
+The temporary migration IP allowance was removed on September 30, 2026;
+Render confirmed an empty database IP allow list, blocking external connections.
 
-Upgrade and any recurring charge require owner approval. After upgrading, align
-the database plan in `render.yaml` with the selected plan and verify that the
-database no longer has an expiry. Do not create a replacement or delete the
-existing database just to remove the free-plan expiry.
+The verified cutover archive was created at `2026-09-24T06:07:13.006Z`, with
+34,106 plaintext bytes and SHA-256
+`88da2759311ec8427b47e62047b4e4f988cd3825f640ce6b9499921d5aa1989b`.
+An encrypted owner-local copy and manifest were delivered outside the repository.
+Windows DPAPI CurrentUser encryption ties this copy to the originating Windows
+account/machine; it is not a portable offsite backup. No scheduled backup service
+was configured. Keep fresh encrypted exports in durable offsite storage and
+rehearse restoration before relying on free hosting for important data.
 
 ## Backup and restore drill
 
