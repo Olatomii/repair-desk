@@ -18,13 +18,42 @@ Lifecycle mutations are centralized in `src/lib/booking-workflow.ts`. The API ac
 
 Important transitions append a `BookingEvent` record so the user-facing timeline and future operational audit views can explain what happened.
 
-## Local role setup
+## Cancellation and disputes
 
-Register accounts through the application, then promote accounts for local testing:
+Clients can cancel their own requests before work starts; operators can cancel
+any request in those same stages. A reason of 10–1,000 characters is required.
+After work starts, use a dispute rather than direct cancellation.
 
-```bash
-npm run user:role -- artisan@example.com ARTISAN
-npm run user:role -- operator@example.com OPERATOR
-```
+The booking client or active assigned artisan can open a dispute from
+QUOTE_APPROVED, IN_PROGRESS, AWAITING_HANDOVER, or COMPLETED. DISPUTED pauses all
+normal lifecycle actions. Participants can submit supporting DOCUMENT evidence.
+Operators review events and evidence under the Open disputes filter and record a
+reason when resolving. RESUME restores the exact stage recorded in the immutable
+opening event; CANCEL closes an unfinished repair. A previously completed repair
+cannot be cancelled. Resolution never increments completed-job counts or issues
+refunds. Events and notifications are written atomically with the transition.
 
-Artisan promotion activates the artisan profile and links it to all currently active launch cities and services.
+## Account and coverage administration
+
+Register a client account, then run `npm run user:role -- email@example.com OPERATOR`
+with a private database connection to bootstrap the first operator. Once an
+operator exists, this script refuses further changes. Existing operators use
+`/operator/manage`; they cannot remove their own access. Provisioning uses an
+existing registered email, rejects artisan account conversion, and revokes the
+changed account's sessions. Never grant operator access to an unverified person.
+
+Clients apply at `/apply`, selecting active cities and services. Pending applicants
+can revise their application but cannot activate themselves. Operators review
+contact details and experience before activating, declining/suspending, or
+reactivating an account. Suspension blocks new assignments and artisan work and
+uploads. Existing repairs stay visible; review unresolved repairs before
+suspending someone. Coverage edits affect eligibility for future assignments.
+Former clients retain access to their own existing client repairs after activation.
+
+Cities and services can be created, edited, or deactivated, without deleting
+historical bookings. Service mode and URL names stay fixed. Deactivation prevents
+new requests while preserving existing repairs.
+
+All mutations use origin checks, bounded validated input and server-side
+permissions. Existing-record workflow and coverage forms require an update
+snapshot; conflicting writes return 409 instead of silently overwriting.

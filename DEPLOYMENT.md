@@ -46,8 +46,9 @@ private `DATABASE_URL` to the Neon connection with `sslmode=verify-full`.
 connection. The old Render database expires on **2026-10-19**, but it is no longer
 the app's data source. It contains only the pre-cutover snapshot.
 
-The verified encrypted local backup is not an automated offsite backup; see the
-recovery record for its limits and repeatable export/restore steps. Free web
+Daily encrypted exports run in GitHub Actions with seven-day artifact retention.
+See the recovery record for key custody, size limits, failure checks and restore
+steps. No paid database or backup plan is required. Free web
 services sleep after inactivity; account for the cold start in demos.
 See [Render's free-instance limitations](https://render.com/docs/free).
 

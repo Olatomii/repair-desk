@@ -23,7 +23,7 @@ export async function POST(
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const role = (session.user as typeof session.user & { role?: string }).role ?? "CLIENT";
+  let role = (session.user as typeof session.user & { role?: string }).role ?? "CLIENT";
   const { bookingId } = await params;
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -34,6 +34,7 @@ export async function POST(
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
 
+  if (role === "ARTISAN" && booking.clientId === session.user.id) role = "CLIENT";
   const canAccess =
     role === "OPERATOR" ||
     (role === "CLIENT" && booking.clientId === session.user.id) ||
@@ -79,6 +80,10 @@ export async function POST(
   }
 
   const evidence = await prisma.$transaction(async (tx) => {
+    if (role === "ARTISAN") {
+      const current = await tx.artisanProfile.findUnique({ where: { userId: session.user.id }, select: { status: true } });
+      if (current?.status !== "ACTIVE") return null;
+    }
     // Lock through a conditional write so reassignment/lifecycle changes cannot
     // invalidate the authorization checked before parsing the upload.
     const locked = await tx.booking.updateMany({

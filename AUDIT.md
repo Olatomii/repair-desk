@@ -1,3 +1,10 @@
+> September 30 follow-up: the original audit below is a historical record.
+> Production now uses Neon Free with an adopted and verified Prisma baseline.
+> Administration, artisan applications/coverage, cancellation, and dispute flows
+> are implemented in the operations follow-up. Daily encrypted exports are defined
+> in Actions. See LIFECYCLE.md and DATABASE-RECOVERY.md for current behavior and
+> recovery limits; the original remaining-limitations list is not current status.
+
 # Repair Desk bug audit
 
 Audit began 2026-09-20 and resumed 2026-09-22. Baseline: `025bf007af7ef180cc7612caff920e6b6778d5c9` on `main`. Dedicated branch: `audit/bug-fixes-2026-09-20`. MEDAGENT was not modified. Scope is correctness, security, existing workflows, deployment reliability, and regression coverage; no cancellation/dispute product workflows were added.

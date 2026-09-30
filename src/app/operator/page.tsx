@@ -1,3 +1,5 @@
+import Link from "next/link";
+import ExceptionControls from "@/components/exception-controls";
 import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
 import { requireRole } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -5,8 +7,10 @@ import OperatorAssignment from "@/components/operator-assignment";
 import EvidenceList from "@/components/evidence-list";
 import NotificationsLink from "@/components/notifications-link";
 
-export default async function OperatorDashboard({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
-  const page = bookingPage((await searchParams).page);
+export default async function OperatorDashboard({ searchParams }: { searchParams: Promise<{ page?: string | string[]; status?: string }> }) {
+  const query = await searchParams;
+  const page = bookingPage(query.page);
+  const status = query.status === "DISPUTED" ? "DISPUTED" : undefined;
   const { session } = await requireRole(["OPERATOR"]);
 
   const [requested, activeArtisans, totalBookings, bookings, artisans, unreadCount] = await Promise.all([
@@ -14,9 +18,11 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
     prisma.artisanProfile.count({ where: { status: "ACTIVE", user: { role: "ARTISAN" } } }),
     prisma.booking.count(),
     prisma.booking.findMany({
-      where: { status: { in: ["REQUESTED", "ASSIGNED"] } },
+      where: status ? { status } : {},
+
       include: {
         client: { select: { name: true, email: true } },
+        events: { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 10 },
         city: true,
         serviceCategory: true,
         artisan: { include: { user: { select: { name: true } } } },
@@ -33,7 +39,7 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
           },
         },
       },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * BOOKING_PAGE_SIZE,
       take: BOOKING_PAGE_SIZE + 1,
     }),
@@ -56,7 +62,7 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
           <p className="eyebrow">Operator dashboard</p>
           <h1 className="mt-2 text-4xl font-black">Repair Desk operations</h1>
         </div>
-        <NotificationsLink unreadCount={unreadCount} />
+        <div className="flex flex-wrap gap-3"><Link className="button-secondary" href="/operator/manage">Manage artisans and coverage</Link><NotificationsLink unreadCount={unreadCount} /></div>
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -66,12 +72,13 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
       </div>
 
       <section className="mt-8">
-        <p className="eyebrow">Assignment queue</p>
-        <h2 className="mt-2 text-2xl font-black">Requests needing an artisan</h2>
+        <p className="eyebrow">Repair oversight</p>
+        <h2 className="mt-2 text-2xl font-black">Repairs and disputes</h2>
+        <nav aria-label="Repair filters" className="mt-3 flex gap-3"><Link href="/operator" className="button-secondary">All repairs</Link><Link href="/operator?status=DISPUTED" className="button-secondary">Open disputes</Link></nav>
 
         <div className="mt-5 space-y-4">
           {bookings.length === 0 ? (
-            <div className="card p-7 text-[#64706a]">No requested or assignable repairs are waiting.</div>
+            <div className="card p-7 text-[#64706a]">No repairs to review.</div>
           ) : (
             bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => {
               const eligible = artisans
@@ -94,15 +101,17 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
                     </div>
                   </div>
 
-                  <EvidenceList evidence={booking.evidence} />
-                  <OperatorAssignment expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} currentArtisanId={booking.artisanId} artisans={eligible} />
+                  <ExceptionControls id={booking.id} status={booking.status} expectedUpdatedAt={booking.updatedAt.toISOString()} role="OPERATOR" />
+              <EvidenceList evidence={booking.evidence} />
+                  {["REQUESTED", "ASSIGNED"].includes(booking.status) ? <OperatorAssignment expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} currentArtisanId={booking.artisanId} artisans={eligible} /> : null}
+                  <details className="mt-4"><summary className="cursor-pointer font-bold">Recent activity and reasons</summary><ol className="mt-2 space-y-2">{booking.events.map(event => <li key={event.id} className="text-sm"><strong>{event.type.replaceAll("_", " ")}</strong>: {event.note}</li>)}</ol></details>
                 </article>
               );
             })
           )}
         </div>
       </section>
-      <BookingPagination page={page} hasNext={bookings.length > BOOKING_PAGE_SIZE} href="/operator" />
+      <BookingPagination page={page} hasNext={bookings.length > BOOKING_PAGE_SIZE} href={status ? "/operator?status=DISPUTED" : "/operator"} />
     </main>
   );
 }

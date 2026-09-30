@@ -32,6 +32,9 @@ export const bookingActionSchema = z.discriminatedUnion("action", [
     expectedUpdatedAt: z.iso.datetime(),
     action: z.literal("CONFIRM_HANDOVER"),
   }),
+  z.object({ action: z.literal("CANCEL_BOOKING"), expectedUpdatedAt: z.iso.datetime(), reason: z.string().trim().min(10).max(1000) }),
+  z.object({ action: z.literal("OPEN_DISPUTE"), expectedUpdatedAt: z.iso.datetime(), reason: z.string().trim().min(10).max(1000) }),
+  z.object({ action: z.literal("RESOLVE_DISPUTE"), expectedUpdatedAt: z.iso.datetime(), reason: z.string().trim().min(10).max(1000), resolution: z.enum(["RESUME", "CANCEL"]) }),
 ]);
 
 export type BookingActionInput = z.infer<typeof bookingActionSchema>;

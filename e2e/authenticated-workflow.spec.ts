@@ -1,3 +1,4 @@
+import { signIn } from "./auth-helper";
 import { test, expect, type APIRequestContext, type BrowserContext } from "@playwright/test";
 import { prisma } from "../src/lib/prisma";
 import { randomUUID } from "node:crypto";
@@ -45,7 +46,7 @@ test("authenticated repair lifecycle, isolation, stale requests and evidence", a
     const user = await prisma.user.create({ data: { id, email: `${role.toLowerCase()}-${id}@example.invalid`, name: `Audit ${role}`, role,
       accounts: { create: { id: randomUUID(), accountId: id, providerId: 'credential', password: await hashPassword(password) } },
     } });
-    const response = await context.request.post('/api/auth/sign-in/email', { headers: { origin: baseURL }, data: { email: user.email, password } });
+    const response = await signIn(context.request, baseURL, user.email, password);
     expect(response.ok(), await response.text()).toBeTruthy();
     return { context, user };
   };

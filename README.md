@@ -140,16 +140,22 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-### Create test roles
+### Provision operators and artisans
 
-Register accounts through the UI first, then promote them locally:
+Register a client account, then bootstrap the **first** operator using a private
+`DATABASE_URL`:
 
 ```bash
-npm run user:role -- artisan@example.com ARTISAN
 npm run user:role -- operator@example.com OPERATOR
 ```
 
-Promoting an artisan also creates/activates the artisan profile and links it to all currently active launch cities and services for convenient local testing.
+The script refuses to run once an operator exists. Sign in again, then use
+`/operator/manage` to provision other operators, review applications, manage
+artisan status and coverage, and administer cities/services. Artisans apply at
+`/apply`; an application never grants privileged access by itself.
+
+See [operations and lifecycle rules](LIFECYCLE.md) and
+[backup/recovery operations](DATABASE-RECOVERY.md).
 
 ## Quality checks
 
@@ -166,7 +172,7 @@ CI starts isolated PostgreSQL and runs Prisma generation, linting, TypeScript ch
 
 ## Deployment
 
-`render.yaml` defines a free Render web service and free Render Postgres instance. Startup runs only the web process. Initialize a new database explicitly before its first deployment; see [deployment operations](DEPLOYMENT.md). `/api/health` verifies database connectivity. Free databases expire, so this configuration is for a temporary demo.
+Production uses Neon Free and a free Render web service. `render.yaml` preserves the private external database URL. Startup runs only the web process. Initialize a new database explicitly before its first deployment; see [deployment operations](DEPLOYMENT.md). `/api/health` verifies database connectivity.
 
 Production deployment: https://repair-desk-5jcz.onrender.com
 
