@@ -1,3 +1,4 @@
+import ExceptionControls from "@/components/exception-controls";
 import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
@@ -9,7 +10,7 @@ import NotificationsLink from "@/components/notifications-link";
 
 export default async function ClientDashboard({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
   const page = bookingPage((await searchParams).page);
-  const { session } = await requireRole(["CLIENT"]);
+  const { session } = await requireRole(["CLIENT", "ARTISAN"]);
 
   const [bookings, unreadCount] = await Promise.all([
     prisma.booking.findMany({
@@ -47,8 +48,9 @@ export default async function ClientDashboard({ searchParams }: { searchParams: 
           <h1 className="mt-2 text-4xl font-black tracking-tight">Your repairs</h1>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Link href="/apply" className="button-secondary">Work as an artisan</Link>
           <NotificationsLink unreadCount={unreadCount} />
-          <Link href="/book" className="button-primary">New repair request</Link>
+          {session.user.role === "CLIENT" ? <Link href="/book" className="button-primary">New repair request</Link> : null}
         </div>
       </div>
 
@@ -94,6 +96,7 @@ export default async function ClientDashboard({ searchParams }: { searchParams: 
                 </div>
               ) : null}
 
+              <ExceptionControls id={booking.id} status={booking.status} expectedUpdatedAt={booking.updatedAt.toISOString()} role="CLIENT" />
               <EvidenceList evidence={booking.evidence} />
               {booking.status === "REQUESTED" || booking.status === "ASSIGNED" ? (
                 <EvidenceUpload bookingId={booking.id} kinds={["BEFORE", "DOCUMENT"]} />

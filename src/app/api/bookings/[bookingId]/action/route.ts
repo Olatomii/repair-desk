@@ -10,13 +10,16 @@ import {
   startWork,
   submitQuote,
 } from "@/lib/booking-workflow";
+import { prisma } from "@/lib/prisma";
+import { handleException } from "@/lib/booking-exceptions";
+import { Prisma } from "../../../../../../generated/prisma/client";
 import { WorkflowError } from "@/lib/booking-state";
 import { bookingActionSchema } from "@/lib/validators/workflow";
 
 const allowedActionsByRole: Record<"CLIENT" | "ARTISAN" | "OPERATOR", readonly string[]> = {
-  OPERATOR: ["ASSIGN_ARTISAN"],
-  ARTISAN: ["SUBMIT_QUOTE", "START_WORK", "MARK_WORK_COMPLETE"],
-  CLIENT: ["APPROVE_QUOTE", "REJECT_QUOTE", "CONFIRM_HANDOVER"],
+  OPERATOR: ["ASSIGN_ARTISAN", "CANCEL_BOOKING", "RESOLVE_DISPUTE"],
+  ARTISAN: ["SUBMIT_QUOTE", "START_WORK", "MARK_WORK_COMPLETE", "OPEN_DISPUTE", "CANCEL_BOOKING", "APPROVE_QUOTE", "REJECT_QUOTE", "CONFIRM_HANDOVER"],
+  CLIENT: ["APPROVE_QUOTE", "REJECT_QUOTE", "CONFIRM_HANDOVER", "CANCEL_BOOKING", "OPEN_DISPUTE"],
 };
 
 export async function POST(
@@ -49,8 +52,17 @@ export async function POST(
   const { bookingId } = await params;
 
   try {
+    if (role === "ARTISAN" && ["APPROVE_QUOTE", "REJECT_QUOTE", "CONFIRM_HANDOVER"].includes(parsed.data.action)) {
+      const owned = await prisma.booking.findUnique({ where: { id: bookingId }, select: { clientId: true } });
+      if (owned?.clientId !== session.user.id) return NextResponse.json({ error: "Only the booking client can perform this action." }, { status: 403 });
+    }
     let booking;
     switch (parsed.data.action) {
+      case "CANCEL_BOOKING":
+      case "OPEN_DISPUTE":
+      case "RESOLVE_DISPUTE":
+        booking = await handleException(bookingId, session.user.id, parsed.data);
+        break;
       case "ASSIGN_ARTISAN":
         booking = await assignArtisan({ bookingId, artisanId: parsed.data.artisanId, expectedUpdatedAt: parsed.data.expectedUpdatedAt, actorId: session.user.id });
         break;
@@ -87,6 +99,9 @@ export async function POST(
       quotedAmount: booking.quotedAmount?.toString() ?? null,
     });
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      return NextResponse.json({ error: "The repair changed. Refresh and try again." }, { status: 409 });
+    }
     if (error instanceof WorkflowError) {
       return NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode });
     }

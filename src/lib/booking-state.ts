@@ -16,7 +16,10 @@ export type BookingWorkflowAction =
   | "REJECT_QUOTE"
   | "START_WORK"
   | "MARK_WORK_COMPLETE"
-  | "CONFIRM_HANDOVER";
+  | "CONFIRM_HANDOVER"
+  | "CANCEL_BOOKING"
+  | "OPEN_DISPUTE"
+  | "RESOLVE_DISPUTE";
 
 const allowedStatuses: Record<BookingWorkflowAction, readonly BookingStatusValue[]> = {
   ASSIGN_ARTISAN: ["REQUESTED", "ASSIGNED"],
@@ -26,6 +29,9 @@ const allowedStatuses: Record<BookingWorkflowAction, readonly BookingStatusValue
   START_WORK: ["QUOTE_APPROVED"],
   MARK_WORK_COMPLETE: ["IN_PROGRESS"],
   CONFIRM_HANDOVER: ["AWAITING_HANDOVER"],
+  CANCEL_BOOKING: ["REQUESTED", "ASSIGNED", "QUOTED", "QUOTE_APPROVED"],
+  OPEN_DISPUTE: ["QUOTE_APPROVED", "IN_PROGRESS", "AWAITING_HANDOVER", "COMPLETED"],
+  RESOLVE_DISPUTE: ["DISPUTED"],
 };
 
 export function isActionAllowed(

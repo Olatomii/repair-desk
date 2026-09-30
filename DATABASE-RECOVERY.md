@@ -36,9 +36,54 @@ The verified cutover archive was created at `2026-09-24T06:07:13.006Z`, with
 `88da2759311ec8427b47e62047b4e4f988cd3825f640ce6b9499921d5aa1989b`.
 An encrypted owner-local copy and manifest were delivered outside the repository.
 Windows DPAPI CurrentUser encryption ties this copy to the originating Windows
-account/machine; it is not a portable offsite backup. No scheduled backup service
-was configured. Keep fresh encrypted exports in durable offsite storage and
-rehearse restoration before relying on free hosting for important data.
+account/machine. The newer daily encrypted offsite workflow below supplements
+this original cutover copy. Rehearse restoration periodically.
+
+## Daily encrypted offsite exports
+
+`.github/workflows/database-backup.yml` runs at 03:23 UTC daily and can be
+triggered manually from Actions on `main`. It uses the existing public repository's
+standard GitHub runner, PostgreSQL 18, and a dedicated Neon read-only login.
+`BACKUP_DATABASE_URL` is a repository Actions secret; `BACKUP_PUBLIC_KEY` is a
+repository variable. The database credential grants SELECT in the public schema,
+not write or administration access. New tables created by `neondb_owner` inherit
+the SELECT grant; revisit grants if the migration owner changes.
+
+Only the app's public schema is exported (including authentication, evidence and
+Prisma history), not Neon's separate internal/auth schemas. The workflow enforces
+TLS certificate verification. It encrypts in memory using AES-256-GCM and wraps the
+random key using RSA-OAEP-SHA256. Only ciphertext is uploaded to Actions artifacts;
+no plaintext dump, connection URL or decryption key is published. Anyone with
+artifact access can download ciphertext, so keep the owner private key secret.
+
+Artifacts expire after seven days. Exports fail above 16 MiB, encrypted artifacts
+above 24 MiB, bounding a normal seven-day schedule to at most 168 MiB. Manual runs
+also consume retention space. These are deliberate free-tier bounds, not a
+capacity guarantee: review failed Actions runs, storage usage and account budgets
+without enabling paid overages. GitHub scheduled workflows can be delayed and can
+be disabled after prolonged public-repository inactivity; verify recent successful
+runs before relying on the daily recovery point. No SLA or unlimited storage is
+promised. See [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+
+Download a successful run's `repair-desk-encrypted-*` artifact and extract its JSON.
+Recover the private key from the owner-local DPAPI copy with the delivered helper,
+then keep a portable private-key copy in an owner-controlled password manager or
+secure offline storage. Losing that key makes the ciphertext unrecoverable.
+Neither the key nor plaintext export belongs in GitHub.
+
+```sh
+node scripts/decrypt-backup.mjs repair-desk-backup.encrypted.json private-key.pem new-private-path.dump
+```
+
+The decryptor verifies GCM authentication and SHA-256 and refuses to overwrite an
+existing destination. Restore into a **new disposable database only**. A
+`--schema=public` export includes CREATE SCHEMA public, so remove the initially
+empty public schema from that new database before `pg_restore` (without CASCADE).
+Never execute that preparation against production or any populated database.
+Validate schema, counts, relationships and app behavior before any cutover.
+Keep credentials in a service/password file and remove plaintext recovery files
+when finished. An initial read-only export/encryption/restore drill was performed
+locally; the completion report records the first hosted run verification.
 
 ## Backup and restore drill
 

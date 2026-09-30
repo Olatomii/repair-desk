@@ -29,7 +29,7 @@ export async function GET(
 
   const canAccess =
     role === "OPERATOR" ||
-    (role === "CLIENT" && evidence.booking.clientId === session.user.id) ||
+    (["CLIENT", "ARTISAN"].includes(role) && evidence.booking.clientId === session.user.id) ||
     (role === "ARTISAN" && evidence.booking.artisan?.userId === session.user.id);
 
   if (!canAccess) {

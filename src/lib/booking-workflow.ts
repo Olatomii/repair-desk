@@ -99,7 +99,7 @@ export async function assignArtisan({
     await notifyWorkflow(tx, bookingId, "ASSIGN_ARTISAN", actorId);
 
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  });
+  }, { isolationLevel: "Serializable" });
 }
 
 export async function submitQuote({
@@ -188,7 +188,7 @@ export async function submitQuote({
     await notifyWorkflow(tx, bookingId, "SUBMIT_QUOTE", actorId);
 
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  });
+  }, { isolationLevel: "Serializable" });
 }
 
 export async function respondToQuote({
@@ -280,7 +280,7 @@ export async function respondToQuote({
     await notifyWorkflow(tx, bookingId, action, actorId);
 
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  });
+  }, { isolationLevel: "Serializable" });
 }
 
 export async function startWork({
@@ -423,7 +423,7 @@ async function artisanTransition({
     await notifyWorkflow(tx, bookingId, action, actorId);
 
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  });
+  }, { isolationLevel: "Serializable" });
 }
 
 export async function confirmHandover({
@@ -500,5 +500,5 @@ export async function confirmHandover({
     await notifyWorkflow(tx, bookingId, "CONFIRM_HANDOVER", actorId);
 
     return tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  });
+  }, { isolationLevel: "Serializable" });
 }
