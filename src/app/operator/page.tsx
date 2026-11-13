@@ -1,3 +1,4 @@
+import BookingProgress from "@/components/booking-progress";
 import Link from "next/link";
 import ExceptionControls from "@/components/exception-controls";
 import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
@@ -56,7 +57,7 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
   ]);
 
   return (
-    <main className="shell py-12">
+    <main className="shell workspace-page py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Operator dashboard</p>
@@ -67,7 +68,7 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {[["Unassigned requests", requested], ["Active artisans", activeArtisans], ["Total bookings", totalBookings]].map(([label, value]) => (
-          <div className="card p-6" key={String(label)}><div className="text-sm font-bold text-[#64706a]">{label}</div><div className="mt-3 text-4xl font-black">{value}</div></div>
+          <div className="card job-card p-6" key={String(label)}><div className="text-sm font-bold text-[#626975]">{label}</div><div className="mt-3 text-4xl font-black">{value}</div></div>
         ))}
       </div>
 
@@ -78,7 +79,7 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
 
         <div className="mt-5 space-y-4">
           {bookings.length === 0 ? (
-            <div className="card p-7 text-[#64706a]">No repairs to review.</div>
+            <div className="card p-7 text-[#626975]">No repairs to review.</div>
           ) : (
             bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => {
               const eligible = artisans
@@ -86,17 +87,17 @@ export default async function OperatorDashboard({ searchParams }: { searchParams
                 .map((artisan) => ({ id: artisan.id, name: artisan.user.name }));
 
               return (
-                <article key={booking.id} className="card p-6">
+                <article key={booking.id} className="card job-card p-6"><BookingProgress status={booking.status}/>
                   <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                     <div>
-                      <p className="text-xs font-extrabold uppercase tracking-[.13em] text-[#64706a]">{booking.reference} · {booking.status.replaceAll("_", " ")}</p>
+                      <p className="text-xs font-extrabold uppercase tracking-[.13em] text-[#626975]">{booking.reference} · {booking.status.replaceAll("_", " ")}</p>
                       <h3 className="mt-2 text-xl font-black">{booking.serviceCategory.name} · {booking.city.name}</h3>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64706a]">{booking.problemDescription}</p>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#626975]">{booking.problemDescription}</p>
                       <p className="mt-3 text-sm">Client: <strong>{booking.client.name}</strong></p>
                       {booking.address ? <p className="mt-2 text-sm">Service address: {booking.address}</p> : null}
                       {booking.preferredDate ? <p className="mt-2 text-sm">Preferred date: {booking.preferredDate.toISOString().slice(0, 10)}</p> : null}
                     </div>
-                    <div className="text-sm text-[#64706a] md:text-right">
+                    <div className="text-sm text-[#626975] md:text-right">
                       {booking.artisan ? <>Current artisan<div className="mt-1 font-black text-[#1e2522]">{booking.artisan.user.name}</div></> : "Unassigned"}
                     </div>
                   </div>

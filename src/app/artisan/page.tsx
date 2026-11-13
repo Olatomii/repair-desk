@@ -1,3 +1,4 @@
+import BookingProgress from "@/components/booking-progress";
 import Link from "next/link";
 import ExceptionControls from "@/components/exception-controls";
 import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/booking-pagination";
@@ -46,7 +47,7 @@ export default async function ArtisanDashboard({ searchParams }: { searchParams:
   ]);
 
   return (
-    <main className="shell py-12">
+    <main className="shell workspace-page py-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Artisan dashboard</p>
@@ -63,17 +64,17 @@ export default async function ArtisanDashboard({ searchParams }: { searchParams:
       ) : (
         <div className="mt-8 space-y-4">
           {profile.bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => (
-            <article key={booking.id} className="card p-6">
+            <article key={booking.id} className="card job-card p-6"><BookingProgress status={booking.status}/>
               <div className="grid gap-4 md:grid-cols-[1fr_auto]">
                 <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[.13em] text-[#64706a]">{booking.reference}</p>
+                  <p className="text-xs font-extrabold uppercase tracking-[.13em] text-[#626975]">{booking.reference}</p>
                   <h2 className="mt-2 text-xl font-black">{booking.serviceCategory.name} · {booking.city.name}</h2>
-                  <p className="mt-2 text-sm leading-6 text-[#64706a]">{booking.problemDescription}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#626975]">{booking.problemDescription}</p>
                   <p className="mt-3 text-sm">Client: <strong>{booking.client.name}</strong></p>
                   {booking.address ? <p className="mt-2 text-sm">Service address: {booking.address}</p> : null}
                   {booking.preferredDate ? <p className="mt-2 text-sm">Preferred date: {booking.preferredDate.toISOString().slice(0, 10)}</p> : null}
                 </div>
-                <span className="h-fit rounded-full bg-[#edf3ef] px-3 py-1 text-xs font-black text-[#1f5b45]">{booking.status.replaceAll("_", " ")}</span>
+                <span className="h-fit rounded-full bg-[#edf1fb] px-3 py-1 text-xs font-black text-[#2849c7]">{booking.status.replaceAll("_", " ")}</span>
               </div>
 
               {profile.status === "ACTIVE" && booking.status === "ASSIGNED" ? (
@@ -84,16 +85,16 @@ export default async function ArtisanDashboard({ searchParams }: { searchParams:
               ) : null}
 
               {booking.status === "QUOTED" ? (
-                <div className="mt-4 rounded-xl bg-[#f6f3ec] p-4 text-sm">
+                <div className="mt-4 rounded-xl bg-[#f5f5f1] p-4 text-sm">
                   <strong>Quote sent:</strong> NGN {booking.quotedAmount?.toString()}
-                  {booking.quoteNote ? <p className="mt-2 text-[#64706a]">{booking.quoteNote}</p> : null}
-                  <p className="mt-2 text-[#64706a]">Waiting for the client to respond.</p>
+                  {booking.quoteNote ? <p className="mt-2 text-[#626975]">{booking.quoteNote}</p> : null}
+                  <p className="mt-2 text-[#626975]">Waiting for the client to respond.</p>
                 </div>
               ) : null}
 
               {profile.status === "ACTIVE" && booking.status === "QUOTE_APPROVED" ? <div className="mt-4"><WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="START_WORK">Start repair</WorkflowButton></div> : null}
               {profile.status === "ACTIVE" && booking.status === "IN_PROGRESS" ? <div className="mt-4"><WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="MARK_WORK_COMPLETE">Mark work finished</WorkflowButton></div> : null}
-              {booking.status === "AWAITING_HANDOVER" ? <p className="mt-4 rounded-xl bg-[#edf3ef] p-4 text-sm font-semibold text-[#1f5b45]">Work is marked finished. Waiting for the client to confirm handover.</p> : null}
+              {booking.status === "AWAITING_HANDOVER" ? <p className="mt-4 rounded-xl bg-[#edf1fb] p-4 text-sm font-semibold text-[#2849c7]">Work is marked finished. Waiting for the client to confirm handover.</p> : null}
 
               {profile.status === "ACTIVE" ? <ExceptionControls id={booking.id} status={booking.status} expectedUpdatedAt={booking.updatedAt.toISOString()} role="ARTISAN" /> : null}
               <details className="mt-4"><summary className="cursor-pointer font-bold">Recent activity and reasons</summary><ol className="mt-2 space-y-2">{booking.events.map(event => <li key={event.id} className="text-sm"><strong>{event.type.replaceAll("_", " ")}</strong>: {event.note}</li>)}</ol></details>

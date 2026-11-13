@@ -44,9 +44,9 @@ export default function EvidenceUpload({
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 grid gap-3 rounded-2xl border border-[#d9ded8] bg-white p-4 md:grid-cols-[180px_1fr_auto]">
+    <form onSubmit={submit} className="mt-4 grid gap-3 rounded-2xl border border-[#dce0e6] bg-white p-4 md:grid-cols-[180px_1fr_auto]">
       <label>
-        <span className="mb-1 block text-xs font-black uppercase tracking-[.12em] text-[#64706a]">Type</span>
+        <span className="mb-1 block text-xs font-black uppercase tracking-[.12em] text-[#626975]">Type</span>
         <select className="field" name="kind" defaultValue={kinds[0]} required>
           {kinds.map((kind) => (
             <option key={kind} value={kind}>
@@ -56,7 +56,7 @@ export default function EvidenceUpload({
         </select>
       </label>
       <label>
-        <span className="mb-1 block text-xs font-black uppercase tracking-[.12em] text-[#64706a]">File</span>
+        <span className="mb-1 block text-xs font-black uppercase tracking-[.12em] text-[#626975]">File</span>
         <input className="field" name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required />
       </label>
       <button className="button-secondary self-end" disabled={loading}>

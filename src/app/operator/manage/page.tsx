@@ -13,7 +13,7 @@ export default async function ManagePage({ searchParams }: { searchParams: Promi
     prisma.city.findMany({ orderBy: { name: "asc" } }),
     prisma.serviceCategory.findMany({ orderBy: { name: "asc" } }),
   ]);
-  return <main className="shell py-12">
+  return <main className="shell workspace-page py-12">
     <Link href="/operator" className="button-secondary">Back to repairs</Link>
     <h1 className="mt-6 text-3xl font-black">People and service coverage</h1>
     <section className="mt-8 space-y-4">

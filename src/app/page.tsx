@@ -1,96 +1,195 @@
 import Link from "next/link";
-
-const services = [
-  {
-    mode: "At your home",
-    name: "Plumbing",
-    description: "Leaks, blocked drains, taps, pipes, and everyday plumbing repairs.",
-    action: "Book a home inspection",
-  },
-  {
-    mode: "At the workshop",
-    name: "Phone repair",
-    description: "Diagnosis, an agreed quote, repair progress, and a recorded handover.",
-    action: "Book a workshop visit",
-  },
-];
-
 export default function Home() {
   return (
     <main>
-      <section className="shell grid gap-10 py-16 md:grid-cols-[1.1fr_.9fr] md:py-24">
-        <div className="self-center">
-          <p className="eyebrow">Repairs, organised</p>
-          <h1 className="mt-4 max-w-3xl text-5xl font-black leading-[0.98] tracking-[-0.045em] md:text-7xl">
-            Know who. Agree what. Confirm done.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[#64706a]">
-            Book a repair, receive an artisan assignment, approve the quote before work starts,
-            and keep a clear record from request to handover.
+      <section className="hero shell">
+        <div className="hero-copy">
+          <p className="eyebrow">
+            <span className="availability-dot" /> A better way to get it fixed
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <h1>
+            Life happens.
+            <br />
+            Let’s get it
+            <br />
+            <span>working again.</span>
+          </h1>
+          <p className="hero-description">
+            The right person. A price you approve. A repair you can follow. Keep
+            every detail together, from the first request to the final handover.
+          </p>
+          <div className="hero-actions">
             <Link href="/register" className="button-primary">
-              Start a repair request
+              Start a repair request <span aria-hidden="true">↗</span>
             </Link>
-            <a href="#how-it-works" className="button-secondary">
-              See how it works
+            <a href="#how-it-works" className="text-link">
+              How it works <span aria-hidden="true">↓</span>
             </a>
           </div>
-        </div>
-
-        <div className="card overflow-hidden p-4">
-          <div className="rounded-[1rem] bg-[#123b2c] p-7 text-white">
-            <p className="text-xs font-bold uppercase tracking-[.18em] text-white/60">
-              Local service, clearer process
-            </p>
-            <div className="mt-14 space-y-5">
-              {["Request", "Quote", "Repair", "Handover"].map((item, index) => (
-                <div key={item} className="flex items-center gap-4 border-t border-white/15 pt-4">
-                  <span className="text-sm text-white/45">0{index + 1}</span>
-                  <span className="text-xl font-bold">{item}</span>
-                </div>
-              ))}
-            </div>
+          <div className="hero-assurance">
+            <span>Quote before commitment</span>
+            <span>A record at every step</span>
           </div>
         </div>
-      </section>
-
-      <section className="shell py-10">
-        <p className="eyebrow">Launching first in Abeokuta · More cities can be added</p>
-        <h2 className="mt-2 text-3xl font-black tracking-tight">Choose a service</h2>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {services.map((service) => (
-            <article key={service.name} className="card p-7">
-              <p className="text-xs font-extrabold uppercase tracking-[.15em] text-[#64706a]">
-                {service.mode}
-              </p>
-              <h2 className="mt-4 text-3xl font-black tracking-tight">{service.name}</h2>
-              <p className="mt-3 max-w-lg leading-7 text-[#64706a]">{service.description}</p>
-              <Link href="/register" className="mt-7 inline-flex font-bold text-[#1f5b45]">
-                {service.action} ↗
-              </Link>
-            </article>
-          ))}
+        <div
+          className="repair-scene"
+          aria-label="Illustration of the repair process"
+        >
+          <div className="scene-heading">
+            <span>THE REPAIR DESK</span>
+            <span>01 / REQUEST TO RESOLUTION</span>
+          </div>
+          <div className="device-stage" aria-hidden="true">
+            <div className="device-shadow" />
+            <div className="device">
+              <div className="device-camera" />
+              <div className="device-screen">
+                <span className="device-plus">+</span>
+                <span>
+                  BACK TO
+                  <br />
+                  EVERYDAY.
+                </span>
+                <small>REPAIR. RESTORE. RECONNECT.</small>
+              </div>
+            </div>
+            <div className="orbit-label">
+              A little care.
+              <br />A longer life.
+            </div>
+            <span className="scene-cross">+</span>
+          </div>
+          <div className="process-ticket">
+            <div>
+              <span className="eyebrow">HOW YOUR REPAIR MOVES</span>
+              <strong>Clear at every stage.</strong>
+            </div>
+            <ol>
+              <li>
+                <span>01</span>Request
+              </li>
+              <li>
+                <span>02</span>Approve quote
+              </li>
+              <li>
+                <span>03</span>Repair & handover
+              </li>
+            </ol>
+          </div>
+          <span className="scene-caption">
+            A process illustration. Your repair has its own record.
+          </span>
         </div>
       </section>
-
-      <section id="how-it-works" className="shell py-20">
-        <div className="card p-8 md:p-12">
-          <p className="eyebrow">A clear agreement, every step</p>
-          <div className="mt-8 grid gap-8 md:grid-cols-3">
+      <section className="service-section shell" id="services">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">What needs attention?</p>
+            <h2>
+              Small problems.
+              <br />
+              Sorted properly.
+            </h2>
+          </div>
+          <p>
+            Home or workshop, the process stays clear.
+            <br />
+            Initial service area: Abeokuta.
+          </p>
+        </div>
+        <div className="services-grid">
+          <Link href="/register" className="service-tile">
+            <span className="service-number">01 / AT YOUR HOME</span>
+            <div className="service-visual plumbing-visual" aria-hidden="true">
+              <span />
+              <i />
+            </div>
+            <div className="service-title">
+              <h3>Plumbing</h3>
+              <span aria-hidden="true">↗</span>
+            </div>
+            <p>
+              From a persistent drip to a blocked drain. Request an inspection
+              and agree the work before it starts.
+            </p>
+            <span className="service-action">Book a home inspection</span>
+          </Link>
+          <Link href="/register" className="service-tile">
+            <span className="service-number">02 / AT THE WORKSHOP</span>
+            <div className="service-visual phone-visual" aria-hidden="true">
+              <span />
+              <i />
+            </div>
+            <div className="service-title">
+              <h3>Phone repair</h3>
+              <span aria-hidden="true">↗</span>
+            </div>
+            <p>
+              Get a diagnosis, review the quote and follow the repair. Confirm
+              handover when your device is back with you.
+            </p>
+            <span className="service-action">Book a workshop visit</span>
+          </Link>
+        </div>
+      </section>
+      <section className="process-section" id="how-it-works">
+        <div className="shell">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Less chasing. More clarity.</p>
+              <h2>
+                Know who. Agree what.
+                <br />
+                Confirm done.
+              </h2>
+            </div>
+            <p>
+              One repair record keeps you, your artisan
+              <br />
+              and the service team on the same page.
+            </p>
+          </div>
+          <div className="process-grid">
             {[
-              ["01", "Meet the assigned artisan", "See who is responsible for the job before work begins."],
-              ["02", "Approve the price", "Review and approve the quote before the repair moves into progress."],
-              ["03", "Keep the record", "Track status changes and retain a clear completion and handover history."],
-            ].map(([number, title, body]) => (
-              <div key={number}>
-                <div className="text-sm font-black text-[#d36a30]">{number}</div>
-                <h3 className="mt-3 text-xl font-black">{title}</h3>
-                <p className="mt-2 leading-7 text-[#64706a]">{body}</p>
-              </div>
+              [
+                "01",
+                "Tell us what’s wrong",
+                "Choose your service and city. Describe the problem so the service team can assign an appropriate artisan.",
+              ],
+              [
+                "02",
+                "Agree before work begins",
+                "Review the proposed price and scope. Approve it, or request a revised quote before work starts.",
+              ],
+              [
+                "03",
+                "Follow it through",
+                "Track progress, review repair evidence and confirm the final handover. The history stays with your request.",
+              ],
+            ].map(([n, t, p]) => (
+              <article key={n}>
+                <span className="process-number">{n}</span>
+                <h3>{t}</h3>
+                <p>{p}</p>
+              </article>
             ))}
           </div>
         </div>
+      </section>
+      <section className="closing-section shell">
+        <p className="eyebrow">Your next repair, organised.</p>
+        <h2>
+          Let’s put things
+          <br />
+          back in working order.
+        </h2>
+        <Link href="/register" className="button-primary">
+          Create your account <span aria-hidden="true">↗</span>
+        </Link>
+        <p>
+          Are you an artisan?{" "}
+          <Link href="/apply">Apply to work with Repair Desk</Link>.
+        </p>
       </section>
     </main>
   );

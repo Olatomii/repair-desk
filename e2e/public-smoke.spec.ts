@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("landing page presents the Repair Desk product", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Repair Desk/i);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Know who");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Life happens");
   await expect(page.getByRole("link", { name: /create account/i })).toBeVisible();
 });
 

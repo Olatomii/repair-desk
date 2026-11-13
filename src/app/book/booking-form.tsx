@@ -105,8 +105,8 @@ export default function BookingForm({
               key={service.id}
               className={`cursor-pointer rounded-2xl border p-4 ${
                 service.id === selectedId
-                  ? "border-[#1f5b45] bg-[#edf3ef]"
-                  : "border-[#d9ded8] bg-white"
+                  ? "border-[#2849c7] bg-[#edf1fb]"
+                  : "border-[#dce0e6] bg-white"
               }`}
             >
               <input
@@ -117,11 +117,11 @@ export default function BookingForm({
                 onChange={() => setSelectedId(service.id)}
                 className="sr-only"
               />
-              <div className="text-xs font-black uppercase tracking-[.12em] text-[#64706a]">
+              <div className="text-xs font-black uppercase tracking-[.12em] text-[#626975]">
                 {service.mode === "HOME" ? "Home visit" : "Workshop"}
               </div>
               <div className="mt-2 font-black">{service.name}</div>
-              <p className="mt-1 text-sm leading-6 text-[#64706a]">{service.description}</p>
+              <p className="mt-1 text-sm leading-6 text-[#626975]">{service.description}</p>
             </label>
           ))}
         </div>

@@ -48,13 +48,13 @@ export default function ArtisanQuoteForm({ bookingId, expectedUpdatedAt }: { boo
   return (
     <form onSubmit={submit} className="mt-4 grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
       <label>
-        <span className="mb-2 block text-xs font-black uppercase tracking-[.11em] text-[#64706a]">
+        <span className="mb-2 block text-xs font-black uppercase tracking-[.11em] text-[#626975]">
           Quote (NGN)
         </span>
         <input className="field" type="number" name="amount" min="1" step="0.01" required />
       </label>
       <label>
-        <span className="mb-2 block text-xs font-black uppercase tracking-[.11em] text-[#64706a]">
+        <span className="mb-2 block text-xs font-black uppercase tracking-[.11em] text-[#626975]">
           Quote note
         </span>
         <input

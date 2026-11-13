@@ -69,7 +69,7 @@ export default function OperatorAssignment({
   return (
     <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
       <label className="min-w-56 flex-1">
-        <span className="mb-2 block text-xs font-black uppercase tracking-[.11em] text-[#64706a]">
+        <span className="mb-2 block text-xs font-black uppercase tracking-[.11em] text-[#626975]">
           Eligible artisan
         </span>
         <select
