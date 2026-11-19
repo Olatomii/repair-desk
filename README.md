@@ -32,11 +32,18 @@ AWAITING_HANDOVER
 COMPLETED
 ```
 
-A rejected quote returns to `ASSIGNED` for revision. `CANCELLED` and `DISPUTED` are reserved exceptional paths.
+A rejected quote returns to `ASSIGNED` for revision. Clients can cancel their own
+repairs before work starts; operators can cancel repairs in those same stages.
+From quote approval onward, the client or active assigned artisan can open a
+dispute, which pauses normal repair actions. Operators resolve disputes by
+restoring the previous stage or cancelling an unfinished repair. Previously
+completed repairs cannot be cancelled. Reasons and decisions are recorded in the
+activity history. See [the lifecycle rules](LIFECYCLE.md).
 
 ## Features
 
 ### Client
+
 - Email/password registration and sign-in
 - City and service selection
 - Repair request creation
@@ -45,25 +52,35 @@ A rejected quote returns to `ASSIGNED` for revision. `CANCELLED` and `DISPUTED` 
 - Before-repair/document evidence uploads
 - Secure evidence viewing
 - Handover confirmation
+- Cancellation before work starts and dispute reporting
+- Artisan application submission and pending revisions
 - In-app notifications
 
 ### Artisan
+
 - Role-scoped work dashboard
 - Assigned-job visibility
 - Quote submission
 - Diagnosis/document evidence uploads
 - Repair start and finish controls
 - After-repair evidence uploads
+- Dispute reporting and supporting document uploads
 - In-app notifications
 
 ### Operator
-- Operations dashboard and queue metrics
+
+- All-stage repair oversight, queue metrics, and an open-disputes filter
 - New-request notifications
 - Eligibility-aware artisan assignment
 - City/service coverage checks
 - Evidence visibility
+- Artisan application review, activation, suspension/reactivation, and coverage management
+- Operator access management for registered accounts
+- City and service creation, editing, and deactivation
+- Eligible repair cancellation and reasoned dispute resolution
 
 ### Platform engineering
+
 - Server-enforced role authorization
 - Transactional and conditional booking state transitions
 - Persistent audit/event history
@@ -75,6 +92,8 @@ A rejected quote returns to `ASSIGNED` for revision. `CANCELLED` and `DISPUTED` 
 - GitHub Actions CI
 - Docker Compose local database
 - Render deployment blueprint
+- Neon Free production database with verified migration baseline
+- Daily encrypted database exports with seven-day retention and documented recovery limits
 
 ## Architecture
 
