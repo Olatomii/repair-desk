@@ -1100,3 +1100,45 @@ summary:focus-visible {
     padding: 16px;
   }
 }
+
+.repair-card-header, .repair-history-heading, .repair-decisions {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.repair-card-header > div:first-child { flex: 1 1 300px; min-width: 0; }
+.repair-card-header h2 { margin: 6px 0; font-size: 23px; letter-spacing: -.035em; }
+.repair-reference, .update-owner { font-size: 12px; font-weight: 700; color: var(--accent-dark); }
+.repair-problem, .repair-card-meta p { color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
+.repair-card-meta p { margin-top: 6px; }
+.repair-status { display: inline-block; font-size: 11px; letter-spacing: .06em; font-weight: 700; }
+.repair-update { margin: 20px 0; padding: 20px; background: #f4f5f7; border-left: 3px solid #9099a6; border-radius: 2px; }
+.repair-update.needs-decision { background: var(--wash); border-color: var(--accent); }
+.repair-update h3 { font-size: 21px; letter-spacing: -.035em; margin: 4px 0 6px; font-weight: 650; }
+.update-description, .repair-estimate p { max-width: 66ch; font-size: 14px; line-height: 1.65; }
+.repair-estimate { border-top: 1px solid var(--line); margin-top: 15px; padding-top: 15px; }
+.repair-estimate span { display: block; font-size: 12px; color: var(--ink-soft); }
+.repair-estimate strong { display: inline-block; font-size: 24px; font-variant-numeric: tabular-nums; margin: 3px 0; }
+.repair-estimate p { white-space: pre-line; }
+.repair-decisions { justify-content: start; gap: 10px; margin-top: 16px; }
+.repair-history-heading { align-items: center; margin-top: 18px; }
+.repair-history-heading h3 { font-size: 16px; font-weight: 650; }
+.repair-history-heading a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; padding-block: 12px; font-weight: 600; font-size: 14px; }
+.client-repair-card .booking-progress { margin-top: 4px; margin-bottom: 0; padding-bottom: 16px; }
+@media(max-width: 600px) {
+  .repair-card-header { display: block; }
+  .repair-card-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-top: 8px; }
+  .client-repair-card .booking-progress { grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); row-gap: 10px; }
+  .client-repair-card .booking-progress li { font-size: 12px; padding-top: 6px; flex-direction: row; gap: 4px; align-items: baseline; }
+  .repair-update { padding: 16px; }
+}
+
+.repair-history-page { max-width: 860px; }
+.repair-history-list { padding-left: 18px; border-left: 1px solid var(--line); }
+.repair-history-list li { position: relative; display: grid; grid-template-columns: 165px 1fr; gap: 6px 20px; padding: 4px 0 14px; }
+.repair-history-list li::before { content: ""; position: absolute; left: -22px; top: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.repair-history-list h3 { font-size: 16px; }
+.repair-history-list p { margin-top: 4px; color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
+@media(max-width: 600px) { .repair-history-list li { grid-template-columns: 1fr; } }

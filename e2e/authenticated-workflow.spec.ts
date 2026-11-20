@@ -106,6 +106,13 @@ test("authenticated repair lifecycle, isolation, stale requests and evidence", a
   await refresh();
   expect((await action(page.request, 'APPROVE_QUOTE', {}, oldQuote)).status()).toBe(409);
   await page.reload();
+  await expect(page.getByRole('heading', { name: 'Review your quote' })).toBeVisible();
+  await page.getByRole('link', { name: 'View repair history' }).click();
+  await expect(page.getByRole('heading', { name: 'Quote revision requested' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Repair requested' })).toBeVisible();
+  const strangerHistory = await stranger.context.request.get('/client/repairs/' + booking.id);
+  expect(strangerHistory.status()).toBe(404);
+  await page.getByRole('link', { name: 'Back to your repairs' }).click();
   await page.getByRole('button', { name: 'Approve quote', exact: true }).click();
   await expect(page.getByText('QUOTE APPROVED', { exact: true }).first()).toBeVisible();
   await refresh();
@@ -120,7 +127,9 @@ test("authenticated repair lifecycle, isolation, stale requests and evidence", a
   expect((await page.request.post(evidenceURL, { multipart: { kind: 'DOCUMENT', file: { name: 'x.pdf', mimeType: 'application/pdf', buffer: Buffer.from('<html>bad</html>') } } })).status()).toBe(400);
   await page.reload();
   await page.getByLabel('File', { exact: true }).setInputFiles({ name: 'audit.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j4l8AAAAASUVORK5CYII=', 'base64') });
+  await expect(page.getByRole('img', { name: 'Selected evidence preview' })).toBeVisible();
   await page.getByRole('button', { name: 'Add evidence' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Added audit.png' })).toBeVisible();
   await page.getByText('Evidence (1)', { exact: true }).click();
   await expect(page.getByRole('link', { name: /audit.png/ })).toBeVisible();
   const evidence = await prisma.bookingEvidence.findFirstOrThrow({ where: { bookingId: booking.id } });

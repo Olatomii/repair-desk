@@ -28,6 +28,15 @@ export function maxEvidenceBytes() {
   return Number.isFinite(configured) && configured > 0 ? configured : 2_097_152;
 }
 
+export function evidenceFileSize(bytes: number) {
+  for (const [unit, divisor] of [["MiB", 1_048_576], ["KiB", 1024]] as const) {
+    if (bytes >= divisor) {
+      return `${Number((bytes / divisor).toFixed(2))} ${unit}`;
+    }
+  }
+  return `${bytes} ${bytes === 1 ? "byte" : "bytes"}`;
+}
+
 export function validateEvidenceMetadata({
   kind,
   mimeType,
@@ -36,7 +45,7 @@ export function validateEvidenceMetadata({
   kind: string;
   mimeType: string;
   size: number;
-}) {
+}, maxBytes = maxEvidenceBytes()) {
   if (!EVIDENCE_KINDS.includes(kind as EvidenceKindValue)) {
     return "Choose a valid evidence type.";
   }
@@ -49,8 +58,8 @@ export function validateEvidenceMetadata({
     return "The selected file is empty.";
   }
 
-  if (size > maxEvidenceBytes()) {
-    return `Evidence files must be ${Math.floor(maxEvidenceBytes() / 1_048_576)} MB or smaller.`;
+  if (size > maxBytes) {
+    return `Choose a file no larger than ${evidenceFileSize(maxBytes)}.`;
   }
 
   return null;

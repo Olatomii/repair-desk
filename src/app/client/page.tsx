@@ -4,7 +4,7 @@ import BookingPagination, { bookingPage, BOOKING_PAGE_SIZE } from "@/components/
 import Link from "next/link";
 import { requireRole } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import WorkflowButton from "@/components/workflow-button";
+import ClientRepairUpdate from "@/components/client-repair-update";
 import EvidenceList from "@/components/evidence-list";
 import EvidenceUpload from "@/components/evidence-upload";
 import NotificationsLink from "@/components/notifications-link";
@@ -19,8 +19,7 @@ export default async function ClientDashboard({ searchParams }: { searchParams: 
       include: {
         serviceCategory: true,
         city: true,
-        artisan: { include: { user: true } },
-        events: { orderBy: { createdAt: "desc" }, take: 4 },
+        artisan: { select: { status: true, user: { select: { name: true } } } },
         evidence: {
           orderBy: { createdAt: "desc" },
           select: {
@@ -63,58 +62,36 @@ export default async function ClientDashboard({ searchParams }: { searchParams: 
           </div>
         ) : (
           bookings.slice(0, BOOKING_PAGE_SIZE).map((booking) => (
-            <article key={booking.id} className="card job-card p-6"><BookingProgress status={booking.status}/>
-              <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+            <article key={booking.id} className="card job-card client-repair-card">
+              <header className="repair-card-header">
                 <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[.13em] text-[#626975]">{booking.reference}</p>
-                  <h2 className="mt-2 text-xl font-black">{booking.serviceCategory.name} · {booking.city.name}</h2>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#626975]">{booking.problemDescription}</p>
+                  <p className="repair-reference">{booking.reference}</p>
+                  <h2>{booking.serviceCategory.name} · {booking.city.name}</h2>
+                  <p className="repair-problem">{booking.problemDescription}</p>
                 </div>
-                <div className="md:text-right">
-                  <span className="inline-flex rounded-full bg-[#edf1fb] px-3 py-1 text-xs font-black text-[#2849c7]">{booking.status.replaceAll("_", " ")}</span>
-                  <p className="mt-3 text-sm text-[#626975]">{booking.artisan ? booking.artisan.user.name : "Awaiting artisan assignment"}</p>
+                <div className="repair-card-meta">
+                  <span className="repair-status">{booking.status.replaceAll("_", " ")}</span>
+                  {booking.artisan && <p>Artisan · {booking.artisan.user.name}</p>}
                 </div>
+              </header>
+
+              <ClientRepairUpdate repair={booking}>
+                {booking.status === "AWAITING_HANDOVER" && <EvidenceList evidence={booking.evidence} />}
+              </ClientRepairUpdate>
+
+              <div className="repair-history-heading">
+                <h3>Repair progress</h3>
+                <Link prefetch={false} href={`/client/repairs/${booking.id}`}>View repair history <span aria-hidden="true">→</span></Link>
               </div>
-
-              {booking.status === "QUOTED" ? (
-                <div className="mt-5 rounded-2xl border border-[#dce0e6] bg-white p-5">
-                  <p className="eyebrow">Quote ready</p>
-                  <div className="mt-2 text-2xl font-black">NGN {booking.quotedAmount?.toString()}</div>
-                  {booking.quoteNote ? <p className="mt-2 max-w-2xl text-sm leading-6 text-[#626975]">{booking.quoteNote}</p> : null}
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="APPROVE_QUOTE">Approve quote</WorkflowButton>
-                    <WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="REJECT_QUOTE" tone="secondary">Request revised quote</WorkflowButton>
-                  </div>
-                </div>
-              ) : null}
-
-              {booking.status === "AWAITING_HANDOVER" ? (
-                <div className="mt-5 rounded-2xl border border-[#dce0e6] bg-white p-5">
-                  <p className="eyebrow">Handover</p>
-                  <h3 className="mt-2 text-xl font-black">Artisan marked the repair finished</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#626975]">Review the completion evidence, then confirm only after you have received the repaired item or inspected the completed work.</p>
-                  <div className="mt-4"><WorkflowButton expectedUpdatedAt={booking.updatedAt.toISOString()} bookingId={booking.id} action="CONFIRM_HANDOVER">Confirm handover</WorkflowButton></div>
-                </div>
-              ) : null}
-
-              <ExceptionControls id={booking.id} status={booking.status} expectedUpdatedAt={booking.updatedAt.toISOString()} role="CLIENT" />
-              <EvidenceList evidence={booking.evidence} />
+              {booking.status !== "CANCELLED" && booking.status !== "DISPUTED" && <BookingProgress status={booking.status} />}
+              {booking.status !== "AWAITING_HANDOVER" && <EvidenceList evidence={booking.evidence} />}
               {booking.status === "REQUESTED" || booking.status === "ASSIGNED" ? (
                 <EvidenceUpload bookingId={booking.id} kinds={["BEFORE", "DOCUMENT"]} />
               ) : !["COMPLETED", "CANCELLED"].includes(booking.status) ? (
                 <EvidenceUpload bookingId={booking.id} kinds={["DOCUMENT"]} />
               ) : null}
 
-              {booking.events.length > 0 ? (
-                <details className="mt-5">
-                  <summary className="cursor-pointer text-sm font-black text-[#2849c7]">Recent activity</summary>
-                  <ol className="mt-3 space-y-2 border-l border-[#dce0e6] pl-4 text-sm text-[#626975]">
-                    {booking.events.map((event) => (
-                      <li key={event.id}><strong className="text-[#1e2522]">{event.type.replaceAll("_", " ")}</strong>{event.note ? ` — ${event.note}` : ""}</li>
-                    ))}
-                  </ol>
-                </details>
-              ) : null}
+              <ExceptionControls id={booking.id} status={booking.status} expectedUpdatedAt={booking.updatedAt.toISOString()} role="CLIENT" />
             </article>
           ))
         )}
